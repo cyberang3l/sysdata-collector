@@ -1,0 +1,10 @@
+[Core]
+Name = New plugin template
+Module = new_plugin_template.py 
+Version = 0.0.1
+
+[Documentation]
+Author = Vangelis Tasoulas
+Website = http://simula.no/people/vangelis
+Copyright = 2014
+Description = This is a simple plugin that you can copy/paste and start writing your new data collector

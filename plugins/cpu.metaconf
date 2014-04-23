@@ -1,0 +1,56 @@
+########################################################
+[Core]
+########################################################
+# Name: The name of this plugin
+# Required
+Name = CPU Stats
+
+# Module: points to the basename of the plugin
+# Required
+Module = cpu.py
+
+# Version: the current version of this plugin
+# Required
+Version = 0.2.0
+
+
+########################################################
+[SupportOptions]
+########################################################
+# Minimum required kernel version that 
+# your plugin is going to work for
+# Optional
+Required_Kernel = 2.6.0
+
+
+########################################################
+[Documentation]
+########################################################
+# Author: name of the plugin's author
+# Optional
+Author = Vangelis Tasoulas
+
+# Website: the website where the plugin can be found.
+# this website will be used to check for latest versions of this plugin
+# Optional
+Website = http://simula.no/people/vangelis
+
+# Copyright: copyright for the plugin
+# Optional
+Copyright = 2014
+
+# Description: a short description of this plugin
+# Optional
+Description = Read CPU statistics from /proc/stat
+
+
+########################################################
+[Plugin]
+########################################################
+# This section is reserved for plugin specific options
+# You can add anything you want here, and parse it
+# from inside your plugin.
+
+# calc_cpu_perc defines if the CPU usage percentages will
+# be calculated.
+calc_cpu_perc = True

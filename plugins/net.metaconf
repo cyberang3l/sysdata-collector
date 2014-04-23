@@ -1,0 +1,77 @@
+########################################################
+[Core]
+########################################################
+Name = Net Stats
+Module = net.py
+Version = 0.1.0
+
+
+########################################################
+[Documentation]
+########################################################
+Author = Vangelis Tasoulas
+Website = http://simula.no/people/vangelis
+Copyright = 2014
+Description = Read Network statistics from /proc/net/dev
+
+
+########################################################
+[Plugin]
+########################################################
+# include_interfaces: A list of comma separated interface
+# names to be included to the data collection.
+# If the interface does not exist, it will still be included
+# in the data collection, but 'Not Available' values will
+# be returned.
+#
+# Unix shell-style wildcards are accepted for inclusion
+# of the available interfaces which are present when the
+# data collection starts
+include_interfaces = *
+
+# exclude_interfaces: A list of comma separated interface
+# names to be excluded from the data collection.
+# Exclude is always coming after the include, so if you
+# include an interface in the include_interfaces parameter,
+# and exclude it in exclude_interfaces, the interface
+# will eventually be excluded.
+#
+# Unix shell-style wildcards are accepted for exclusion.
+#
+# Do not use a single * for exclusion, because this will
+# exclude all of the interfaces!
+# If you don't want to exclude any interface, just comment
+# out this parameter
+exclude_interfaces = 
+
+# NA_value: If you want to collect data for an interface
+# that is expected not to be present from time to time
+# (i.e. a hop pluggable USB ethernet interface), NA_value
+# will be saved in the output when the interface is not
+# present.
+NA_value = NA
+
+# fields_to_collect: A comma separated list of the fields
+# to be collected from /proc/net/dev
+#
+# A list of available field is following:
+#
+#   bytes: The total number of bytes of data transmitted or
+#          received by the interface.
+#   packets: The total number of packets of data transmitted
+#            or received by the interface.
+#   errs: The total number of transmit or receive errors
+#         detected by the device driver.
+#   drop: The total number of packets dropped by the device
+#         driver.
+#   fifo: The number of FIFO buffer errors.
+#   frame: The number of packet framing errors.
+#   colls: The number of collisions detected on the interface.
+#   compressed: The number of compressed packets transmitted
+#               or received by the device driver. (This appears
+#               to be unused in the 2.2.15 kernel.)
+#   carrier: The number of carrier losses detected by the
+#            device driver.
+#   multicast: The number of multicast frames transmitted or
+#              received by the device driver.
+fields_to_collect = bytes, packets, errs, drop

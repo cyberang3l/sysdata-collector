@@ -1,0 +1,10 @@
+[Core]
+Name = Kernel Version
+Module = kernel_version.py
+Version = 1.0.0
+
+[Documentation]
+Author = Vangelis Tasoulas
+Website = http://simula.no/people/vangelis
+Copyright = 2014
+Description = This plugin will only collect the running kernel version (the output of uname -r)

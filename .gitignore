@@ -1,0 +1,7 @@
+*.pyc
+*.pyo
+*.wpr
+*.wpu
+*.log
+*.dat
+*.csv
