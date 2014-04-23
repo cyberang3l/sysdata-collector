@@ -62,7 +62,7 @@ def _command_Line_Options():
     ########################################
 
     parser = argparse.ArgumentParser(version=globalvars.VERSION,
-                                     description="Simple template which currently adds two numbers")
+                                     description=globalvars.PROGRAM_NAME + " version " + globalvars.VERSION)
 
     parser.add_argument("-a", "--append-file",
                         action="store_true",

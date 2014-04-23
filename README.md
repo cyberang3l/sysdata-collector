@@ -1,7 +1,10 @@
-                         sysdata-collector
+#####################
+# sysdata-collector #
+#####################
 
 Motivation
 ----------
+
 Have you ever faced the need to quickly collect performance/system
 data in a simple structured way which is easy to read and parse by
 other programs?
@@ -51,7 +54,7 @@ A few plugins to collect commonly used statistics (CPU, Network)
 come bundled, but you can easily write your own plugins to collect
 any kind of data. sysdata-collector will aggregate the output
 of the activated plugins, and save it in a file or print it in the
-standard output (STDIO).
+standard output (STDOUT).
 The purpose of this program is to remain simple so that one can
 simply copy it in the system where data needs to be collected and
 start collecting data immediately.
@@ -62,8 +65,8 @@ which is going to collect your data.
 The Latest Version
 ------------------
 
-Details of the latest version can be found on the sysdata-collector
-project page under http://.....github..../.
+The latest version can be found on the sysdata-collector github
+project page at https://github.com/cyberang3l/sysdata-collector
 
 
 Documentation
@@ -76,13 +79,17 @@ http://add_github_link/.
 Installation
 ------------
 
-Installation instructions
+git clone https://github.com/cyberang3l/sysdata-collector.git
+
+After cloning is finished, a new directory sysdata-collector will
+be created. Enter the directory and run the main script which is
+sysdata-collector.py
 
 
 Usage Examples
 ------------
 
-Add usage examples
+Please see the file docs/usage-examples.txt
 
 
 Licensing

@@ -43,11 +43,11 @@ class cpu_stats(DataCollector):
 
     #----------------------------------------------------------------------
     def readConfigVars(self):
-        # Default is to exclude interface lo and include all the rest
+        # Default is to include all of the interfaces
         self.options = {
             'exclude_interfaces': [],
             'include_interfaces': ['*'],
-            'NA_value': 'NA_value',
+            'NA_value': 'NA',
             'fields_to_collect': ['bytes', 'packets', 'errs', 'drop']
         }
 
@@ -79,6 +79,7 @@ class cpu_stats(DataCollector):
 
 
         # Discover which network interfaces will be logged and log only these interfaces for the rest of the experiment
+        # Store them in self.interface_to_collect_data_from
         try:
             available_interfaces = []
             r = quick_regexp()
@@ -88,19 +89,22 @@ class cpu_stats(DataCollector):
                         ifName = r.groups[0]
                         available_interfaces.append(ifName)
 
-            # First include all of the interfaces define in include_interfaces
+            # First include all of the interfaces defined in include_interfaces
             for include in self.options['include_interfaces']:
                 match = fnmatch.filter(available_interfaces, include)
-                # If there is a match (include is already in the interfaces)
-                # return
+                # If there is a match ('include' is already in the interfaces)
                 if match:
                     for ifName in match:
                         if ifName not in self.interface_to_collect_data_from:
                             self.interface_to_collect_data_from.append(ifName)
                 else:
+                    # If there is no match, most likely the interface is not
+                    # present at the moment, however, we still want to collect
+                    # data for it
                     if include not in self.interface_to_collect_data_from:
                         self.interface_to_collect_data_from.append(include)
 
+            # Sort by interface name
             self.interface_to_collect_data_from = sorted(self.interface_to_collect_data_from)
 
             # Then start the exclusion if some of them are defined in exclude_interfaces

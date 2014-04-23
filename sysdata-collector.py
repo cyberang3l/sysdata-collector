@@ -176,7 +176,7 @@ class Main(object):
         print_(globalvars.PRINT_SEPARATOR)
         print_("List of available plugins:")
         for name, plugin in self.DataCollectors.items():
-            print_(4 * " " + str(plugin['order']) + ": '" + name + " Version " + str(plugin['info'].version) + "' located at '" + plugin['info'].path + "'")
+            print_(4 * " " + str(plugin['order']) + ": '" + name + " v" + str(plugin['info'].version) + "' located at '" + plugin['info'].path + "'")
             print_(8 * " " + " " * len(str(plugin['order'])) + "Module name: '" + os.path.basename(plugin['info'].path) + "'")
 
     def list_active_plugins(self):
@@ -190,7 +190,7 @@ class Main(object):
         print_("List of active plugins in directory '" + globalvars.active_plugins_dir + "'")
         for symlink_key in self.ActiveDataCollectors:
             plugin = self.ActiveDataCollectors[symlink_key]
-            print_(4 * " " + str(plugin['order']) + ": '" + plugin['name'] + " Version " + str(plugin['info'].version) + "' located at '" + plugin['info'].path + "'")
+            print_(4 * " " + str(plugin['order']) + ": '" + plugin['name'] + " v" + str(plugin['info'].version) + "' located at '" + plugin['info'].path + "'")
             print_(8 * " " + " " * len(str(plugin['order'])) + "Module name: '" + os.path.basename(plugin['info'].path) + "'")
             print_(8 * " " + " " * len(str(plugin['order'])) + "Symlink loading this instance: '" + symlink_key + "'")
 
