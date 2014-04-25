@@ -20,7 +20,7 @@ from collections import OrderedDict
 from platform import release
 
 ########################################################################
-class uptime(DataCollector):
+class kernel_version(DataCollector):
     """
     This plugin will only collect the running kernel version (the output of uname -r)
     """

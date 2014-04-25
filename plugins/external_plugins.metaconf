@@ -1,0 +1,15 @@
+[Core]
+Name = External Plugins
+Module = external_plugins.py
+Version = 0.0.1
+
+[Documentation]
+Author = Vangelis Tasoulas
+Website = http://simula.no/people/vangelis
+Copyright = 2014
+Description = Collect data from external non-python plugins
+
+[Plugin]
+external_plugin_locations = plugins, ~/.sysdata-collector/plugins
+load_extensions = .sh, .pl
+header_prepend_plugin_name = True

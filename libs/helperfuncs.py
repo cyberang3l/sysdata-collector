@@ -19,15 +19,97 @@ import traceback
 from collections import OrderedDict
 import logging
 import platform
+import subprocess
+import datetime
 
 __all__ = [
     'quick_regexp', 'print_', 'get_dict_keys_by_value',
     'flatten_nested_dicts', 'is_number', 'get_kernel_version',
     'trim_list', 'strip_string_list', 'split_strip',
-    'LOG'
+    'executeCommand', 'LOG'
 ]
 
 LOG = logging.getLogger('default.' + __name__)
+
+#----------------------------------------------------------------------
+class executeCommand(object):
+    """
+    Custom class to execute a shell command and
+    provide to the user, access to the returned
+    values
+    """
+
+    def __init__(self, args=None, isUtc=True):
+        self.__stdout = None
+        self.__stderr = None
+        self.__returncode = None
+        self.__timeStartedExecution = None
+        self.__timeFinishedExecution = None
+        self.__args = args
+        self.isUtc = isUtc
+        if(self.__args != None):
+            self.execute()
+
+    def execute(self, args=None):
+        if(args != None):
+            self.__args = args
+
+        if(self.__args != None):
+            if(self.isUtc):
+                self.__timeStartedExecution = datetime.datetime.utcnow()
+            else:
+                self.__timeStartedExecution = datetime.datetime.now()
+            p = subprocess.Popen(self.__args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if(self.isUtc):
+                self.__timeFinishedExecution = datetime.datetime.utcnow()
+            else:
+                self.__timeFinishedExecution = datetime.datetime.now()
+            self.__stdout, self.__stderr = p.communicate()
+            self.__returncode = p.returncode
+            return 1
+        else:
+            self.__stdout = None
+            self.__stderr = None
+            self.__returncode = None
+            return 0
+
+    def getStdout(self):
+        """
+        Get the standard output of the executed command
+        """
+        return self.__stdout
+
+    def getStderr(self):
+        """
+        Get the error output of the executed command
+        """
+        return self.__stderr
+
+    def getReturnCode(self):
+        """
+        Get the exit/return status of the command
+        """
+        return self.__returncode
+
+    def getTimeStartedExecution(self, inMicroseconds=False):
+        """
+        Get the time when the execution started
+        """
+        if(isinstance(self.__timeStartedExecution, datetime.datetime)):
+            if(inMicroseconds):
+                return int(str(calendar.timegm(self.__timeStartedExecution.timetuple())) + str(self.__timeStartedExecution.strftime("%f")))
+                #return self.__timeStartedExecution.strftime("%s%f")
+        return self.__timeStartedExecution
+
+    def getTimeFinishedExecution(self, inMicroseconds=False):
+        """
+        Get the time when the execution finished
+        """
+        if(isinstance(self.__timeFinishedExecution, datetime.datetime)):
+            if(inMicroseconds):
+                return int(str(calendar.timegm(self.__timeFinishedExecution.timetuple())) + str(self.__timeFinishedExecution.strftime("%f")))
+                #return self.__timeStartedExecution.strftime("%s%f")
+        return self.__timeFinishedExecution
 
 #----------------------------------------------------------------------
 class quick_regexp(object):

@@ -22,7 +22,7 @@ from collections import OrderedDict
 import fnmatch
 
 ########################################################################
-class cpu_stats(DataCollector):
+class net_stats(DataCollector):
     """
     Plugin to read the Network statistics from Linux based hosts
 
