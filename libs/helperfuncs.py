@@ -73,16 +73,30 @@ class executeCommand(object):
             self.__returncode = None
             return 0
 
-    def getStdout(self):
+    def getStdout(self, getList=True):
         """
         Get the standard output of the executed command
+
+        getList: If True, return a list of lines.
+                 Otherwise, return the result as one string
         """
+
+        if getList:
+            return self.__stdout.split('\n')
+
         return self.__stdout
 
-    def getStderr(self):
+    def getStderr(self, getList=True):
         """
         Get the error output of the executed command
+
+        getList: If True, return a list of lines.
+                 Otherwise, return the result as one string
         """
+
+        if getList:
+            return self.__stderr.split('\n')
+
         return self.__stderr
 
     def getReturnCode(self):
