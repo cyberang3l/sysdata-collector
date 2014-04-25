@@ -259,7 +259,7 @@ def split_strip(string, separator=","):
     """
     splits the given string in 'sep' and trims the whitespaces or new lines
 
-    returns a list of the slipped stripped strings
+    returns a list of the splitted stripped strings
 
     If the 'string' is not a string, -1 will be returned
     """

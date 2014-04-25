@@ -1,7 +1,7 @@
 [Core]
 Name = External Plugins
 Module = external_plugins.py
-Version = 0.0.1
+Version = 0.1.0
 
 [Documentation]
 Author = Vangelis Tasoulas
@@ -10,6 +10,33 @@ Copyright = 2014
 Description = Collect data from external non-python plugins
 
 [Plugin]
-external_plugin_locations = plugins, ~/.sysdata-collector/plugins
+# load_extensions: The extensions of the loadable external plugins
+# The only extension not allowed to be used for this option is .py,
+# which is used by python plugins. Native sysdata-collector plugins
+# can be generated in python.
+# Defaults are .sh for shell plugins and .pl for perl plugins.
 load_extensions = .sh, .pl
+
+# header_prepend_plugin_name: If this option is set to 'True' (the
+# default, to avoid conflicts in case of an external plugin having
+# the same header with another plugin), the 'external_plugins' plugin
+# will prepend the absolute name of the external plugin without the
+# extension to the headers.
+#
+# Example:
+# if you use an external shell plugin named 'load_avg.sh' and the output
+# of this plugin is the following (1st column is the headers and 2nd is
+# the values):
+#
+# avg_1 0.15
+# avg_5 0.23
+# avg_15 0.17
+#
+# If header_prepend_plugin_name has been set to True, the headers to be
+# collected by sysdata-collector will be the following:
+#
+# load_avg_avg_1
+# load_avg_avg_5
+# load_avg_avg_15
+#
 header_prepend_plugin_name = True
