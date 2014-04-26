@@ -1,61 +1,82 @@
 _sysdata_collector_longopts()
 {
-   local opts
-   
-   opts=$(sysdata-collector.py --help | grep -o '\-\-\([^ ]\)\+')
-   
-   COMPREPLY=( $(compgen -W "${opts}" -- $cur ) )
+    local opts
+
+    # Read the available options dynamically by parsing the output
+    # of sysdata-collector.py --help
+    opts=$(sysdata-collector.py --help | grep -o '\-\-\([^ ]\)\+')
+
+    COMPREPLY=( $(compgen -W "${opts}" -- $cur ) )
 }
 
 _sysdata_collector_get_available_plugins()
 {
-   for plugin in $(sysdata-collector.py --list-available-plugins 2>/dev/null | grep 'Module name' | awk '{print $3}')
-   do
-	echo ${plugin:1:-1}
-   done
+    # The the plugins available to the system by issuing the command
+    # sysdata-collector.py --list-available-plugins
+    for plugin in $(sysdata-collector.py --list-available-plugins 2>/dev/null | grep 'Module name' | awk '{print $3}')
+    do
+        # Strip the quotes from the returned results
+        echo ${plugin:1:-1}
+    done
 }
 
 _sysdata_collector_opt_subcompletions()
 {
-   local prev opts
-   
-   prev=$1
-   
-   sub_comp=$(sysdata-collector.py --help | grep -oP " (${prev}) \w+(\.\w+)?" | awk '{print $2}')
-   
-   case "${sub_comp}" in
-	DIR)
-	   _filedir -d
-	   ;;
-	FILE|log_file|conf_file)
-	   _filedir
-	   ;;
-	PLUGIN.py)
-	   COMPREPLY=( $(compgen -W "$(_sysdata_collector_get_available_plugins)" -- $cur ) )
-	   ;;
-	"")
-	   _sysdata_collector_longopts
-	   ;;
-	*)
-	;;
-   esac
+    # Get the options for each sub completion
+    # for example, if --active-dir is prev, active dir has to be a directory.
+    # So the auto completion suggestions should only show dirs and not filenames
+    local prev opts
+
+    prev=$1
+
+    # Use --help to determine if a command is expecting an argument
+    # or if it is just a switch. If just a switch, $sub_comp == ""
+    sub_comp=$(sysdata-collector.py --help | grep -oP " (${prev}) \w+(\.\w+)?" | awk '{print $2}')
+
+    case "${sub_comp}" in
+        DIR)
+            _filedir -d
+            ;;
+        FILE|log_file|conf_file)
+           _filedir
+           ;;
+        PLUGIN.py)
+           COMPREPLY=( $(compgen -W "$(_sysdata_collector_get_available_plugins)" -- $cur ) )
+           ;;
+        "")
+            _sysdata_collector_longopts
+            ;;
+        *)
+        ;;
+    esac
 }
 
 _sysdata_collector()
 {
-   local cur prev
-   _init_completion || return
+    # cur: the current keyword to be completed
+    # prev: the previous keyword already existing
+    local cur prev
+    _init_completion || return
 
-   COMPREPLY=()
-   cur=${COMP_WORDS[COMP_CWORD]}
-   prev=${COMP_WORDS[COMP_CWORD-1]}
-   
-   _expand || return 0
-   
-   if [[ "${prev}" == "-"* ]]; then
-	_sysdata_collector_opt_subcompletions "${prev}"
-   else
-	_sysdata_collector_longopts
-   fi
+    # Initially the COMPREPLY holds nothing
+    COMPREPLY=()
+    cur=${COMP_WORDS[COMP_CWORD]}
+    prev=${COMP_WORDS[COMP_CWORD-1]}
+
+    # the _expand function will expand ~ to full paths
+    _expand || return 0
+
+    # If the previous argument is a parameter
+    # The check if there is any sub completion for
+    # this specific parameter
+    if [[ "${prev}" == "-"* ]]; then
+        _sysdata_collector_opt_subcompletions "${prev}"
+    else
+        # Otherwise, show all of the available options
+        _sysdata_collector_longopts
+    fi
 }
+
+# Use the function _sysdata_collector() for autocompletion
+# of sysdata-collector.py
 complete -F _sysdata_collector sysdata-collector.py
