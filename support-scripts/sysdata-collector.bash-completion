@@ -34,10 +34,10 @@ _sysdata_collector_opt_subcompletions()
     sub_comp=$(sysdata-collector.py --help | grep -oP " (${prev}) \w+(\.\w+)?" | awk '{print $2}')
 
     case "${sub_comp}" in
-        DIR)
+        DIR_PLUGINS|DIR_ACTIVE)
             _filedir -d
             ;;
-        FILE|log_file|conf_file)
+        FILE|LOG_FILE|CONF_FILE)
            _filedir
            ;;
         PLUGIN.py)

@@ -76,4 +76,5 @@ test_plugin = None
 output_file = 'data_collected-%{ts}.dat'
 delimiter = ","
 active_plugins_dir = "active-plugins"
+plugin_directories = []
 intervalBetweenSamples = 10

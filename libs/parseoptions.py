@@ -41,7 +41,8 @@ def parse_all_conf():
 
     # Validate user input and perform any necessary actions
     # to the given command line options
-    # Command line options may override certain configuration read from the conf file
+    # If any command line options need to override certain configuration
+    # read from the conf file, put the code in this function.
     _validate_command_Line_Options(options)
 
     return options
@@ -89,19 +90,19 @@ def _command_Line_Options():
                         default=False,
                         dest="list_active_plugins",
                         help="Prints a list of the active plugins located under the chosen active-directory and exit")
-    parser.add_argument("-f", "--active-dir",
+    parser.add_argument("-f", "--active-plugins-dir",
                         action="store",
                         dest="active_plugins_dir",
-                        metavar="DIR",
+                        metavar="DIR_ACTIVE",
                         help="Define the active-directory to load plugins from for this experiment.")
-    parser.add_argument("-g", "--plugin-test",
+    parser.add_argument("-g", "--custom-plugins-dir",
                         action="store",
-                        dest="test_plugin_filename",
-                        metavar="PLUGIN.py",
-                        help="Use this option for debugging newly created plugins")
+                        dest="custom_plugins_dir",
+                        metavar="DIR_PLUGINS",
+                        help="Define a directory containing more plugins to be loaded.")
     #  Don't use -h
     #     it is used by --help
-    parser.add_argument("-i", "--interval-between-samples",
+    parser.add_argument("-i", "--interval-between-sampling",
                         action="store",
                         type=float,
                         dest="intervalBetweenSamples",
@@ -111,17 +112,22 @@ def _command_Line_Options():
                         action="store_true",
                         dest="only_print_samples",
                         help="Enabling this flag, will disable saving samples in a file. They will only be printed instead.")
+    parser.add_argument("-k", "--test-plugin",
+                        action="store",
+                        dest="test_plugin_filename",
+                        metavar="PLUGIN.py",
+                        help="Use this option for debugging newly created plugins")
 
 
     ########################################
     #### End user defined options here #####
     ########################################
 
-    parser.add_argument("-C", "--conffile",
+    parser.add_argument("-C", "--conf-file",
                         action="store",
                         default=globalvars.conf_file,
                         dest="conffile",
-                        metavar="conf_file",
+                        metavar="CONF_FILE",
                         help="conf_file where the configuration will be read from (Default: will search for file '" +
                         globalvars.DEFAULT_CONFIG_FILENAME +
                         "' in the known predefined locations")
@@ -148,7 +154,7 @@ def _command_Line_Options():
                                   action="store",
                                   default=globalvars.log_file,
                                   dest="logfile",
-                                  metavar="log_file",
+                                  metavar="LOG_FILE",
                                   help="log_file where the logs will be stored. If the file exists, text will be appended," +
                                   " otherwise the file will be created (Default: " + globalvars.log_file + ")")
 
@@ -206,6 +212,9 @@ def _validate_command_Line_Options(opts):
 
     if(opts.active_plugins_dir):
         globalvars.active_plugins_dir = opts.active_plugins_dir
+
+    if(opts.custom_plugins_dir):
+        globalvars.plugin_directories.insert(0, opts.custom_plugins_dir)
 
     if(helperfuncs.is_number(opts.intervalBetweenSamples)):
         if(opts.intervalBetweenSamples > 0):
@@ -319,18 +328,26 @@ def _read_config_file(opts):
                 if(config.has_option(CurrentSection, "output_file")):
                     globalvars.output_file = replaceVariablesInConfStrings(config.get(CurrentSection, "output_file"))
                     LOG.debug("output_file = " + globalvars.output_file)
+
                 if(config.has_option(CurrentSection, "append_file")):
                     globalvars.append_file = config.getboolean(CurrentSection, "append_file")
                     LOG.debug("append_file = " + str(globalvars.append_file))
+
                 if(config.has_option(CurrentSection, "delimiter")):
                     globalvars.delimiter = config.get(CurrentSection, "delimiter").decode('string-escape')
                     if(len(globalvars.delimiter) > 1):
                         LOG.error("Delimiter must be a single character. Make sure that you do not enclose the character in quotes.")
                         exit(globalvars.exitCode.INCORRECT_USAGE)
                     LOG.debug("delimiter = " + str(globalvars.delimiter))
+
                 if(config.has_option(CurrentSection, "active_plugins_dir")):
                     globalvars.active_plugins_dir = config.get(CurrentSection, "active_plugins_dir")
                     LOG.debug("active_plugins_dir = " + globalvars.active_plugins_dir)
+
+                if(config.has_option(CurrentSection, "custom_plugins_dir")):
+                    globalvars.custom_plugins_dir = config.get(CurrentSection, "custom_plugins_dir")
+                    LOG.debug("custom_plugins_dir = " + globalvars.custom_plugins_dir)
+
                 if(config.has_option(CurrentSection, "intervalBetweenSamples")):
                     globalvars.intervalBetweenSamples = config.getfloat(CurrentSection, "intervalBetweenSamples")
                     LOG.debug("intervalBetweenSamples = " + str(globalvars.intervalBetweenSamples))

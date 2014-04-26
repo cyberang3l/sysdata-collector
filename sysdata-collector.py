@@ -45,7 +45,7 @@ LOG_CONSOLE = logging.getLogger('console.' + __name__)
 sys.dont_write_bytecode = True
 
 class Main(object):
-    plugin_directories = []
+
     plugin_manager = PluginManager()
     DataCollectors = OrderedDict()
     ActiveDataCollectors = OrderedDict()
@@ -55,11 +55,15 @@ class Main(object):
         parseoptions.parse_all_conf()
 
         # Define the directories to be scanned for candidate plugins
-        this_dir = os.path.dirname(os.path.abspath(__file__))
-        home_dir = os.path.expanduser('~')
-        dir_1 = os.path.join(this_dir, 'plugins')
-        dir_2 = os.path.join(home_dir, '.' + globalvars.PROGRAM_NAME + '/plugins')
-        self.plugin_directories = [dir_1, dir_2]
+        # First find plugins located in current directory
+        this_dir = os.path.join(os.getcwd(), 'plugins')
+        # Then find plugins located in the user's home directory
+        home_dir = os.path.join(os.path.expanduser('~'), '.' + globalvars.PROGRAM_NAME + '/plugins')
+        # Last find system wide plugins located in /etc
+        system_dir = os.path.join('/etc/' + globalvars.PROGRAM_NAME + '/plugins')
+        globalvars.plugin_directories.append(this_dir)
+        globalvars.plugin_directories.append(home_dir)
+        globalvars.plugin_directories.append(system_dir)
 
         # Create plugin analyzers for different types of plugins
         # Do not add a dot before the extension.
@@ -68,7 +72,7 @@ class Main(object):
 
         # Configure Plugin Locator
         PL = PluginFileLocator(analyzers=PluginAnalyzers)
-        PL.setPluginPlaces(self.plugin_directories)
+        PL.setPluginPlaces(globalvars.plugin_directories)
 
         # Create plugin manager
         self.plugin_manager.setPluginLocator(PL)
@@ -84,7 +88,7 @@ class Main(object):
         # Check if any plugins were found
         if(num == 0):
             LOG.critical('No plugins found. The following directories were checked:')
-            for dir_ in self.plugin_directories:
+            for dir_ in globalvars.plugin_directories:
                 LOG.critical("'" + dir_ + "'")
 
             LOG.critical('for the following plugin extensions:')
@@ -103,69 +107,55 @@ class Main(object):
     def get_available_plugins(self):
         """
         Get the available plugins and store them in self.DataCollectors by calling
-        the self.update_available_plugins() function
+        the self.update_available_plugins() function.
 
-        Handle versioned plugins (when more than one versions of the same plugin exist in the system)
+        Plugins are read in order from different directories (desribed below), and
+        if a plugin with the same name and version is encountered in more than one
+        of the directories, only the one loaded first will be loaded.
+
+        Same plugins of different versions will always be loaded.
+
+        Note that the plugin loading will only expose the available plugins to the
+        program. It will not activate them as well! To activate certain plugins for
+        a specific experiment, create symbolic links (ln -s) from the loaded
+        plugins (get a list of the loaded plugins by running the program with the
+        option --list-available-plugins) in the "active-directory" folder.
+        To check which plugins are taking part in the data collection use the option
+        --list-active-plugins
+
+        The plugins will be read from the following directories in order:
+            * User provided 'plugins' directory through the configuration
+              file option custom_plugins_dir, or the option --custom-plugins-dir
+            * The plugins folder located in the current directory (./plugins)
+            * The user's home directory in ~/.sysdata-collector/plugins
+            * The system directory /etc/sysdata-collector/plugins
         """
-        # TODO:
-        # Versioned plugins. If the same plugin is found in more than one directories what do I do?
-        #         Currently, if multiple instances of the same plugin.name are found, the most recent one is loaded.
-        #         Inform the user that different versions exist and load the one which is linked in the active-plugins directory? <- Prefer this one
-        counter = 0
+
         LOG.info("Getting available plugins in the system...")
         for plugin in self.plugin_manager.getPluginsOfCategory("DataCollectors"):
             if(isinstance(plugin, yapsy.PluginInfo.PluginInfo)):
-                if(plugin.name not in self.DataCollectors.keys()):
-                    counter+=1
-                    self.update_available_plugins(plugin, counter)
+                plugin_key_name = plugin.name + '_' + str(plugin.version)
+                if(plugin_key_name not in self.DataCollectors.keys()):
+                    # Store the plugin in self.DataCollectors
+                    self.DataCollectors[plugin_key_name] = {}
+                    self.DataCollectors[plugin_key_name]['plugin'] = plugin.plugin_object
+                    self.DataCollectors[plugin_key_name]['info'] = plugin
+                    self.DataCollectors[plugin_key_name]['order'] = 0
                     LOG.debug(4 * ' ' + "Found plugin: '" + plugin.name + " Version " + str(plugin.version) + "': " + plugin.path)
                 else:
-                    LOG.warn("Duplicate plugin found: '" + plugin.name + " Version " + str(plugin.version) + "': " + plugin.path)
-                    LOG.warn("Plugin already loaded: '" + plugin.name + " Version " + str(self.DataCollectors[plugin.name]['info'].version) + "': " + self.DataCollectors[plugin.name]['info'].path)
-                    if(plugin.version > self.DataCollectors[plugin.name]['info'].version):
-                        LOG.warn("The newly found plugin is newer version. Will use this one instead.")
-                        self.update_available_plugins(plugin, self.DataCollectors[plugin.name]['order'])
-                    else:
-                        LOG.warn("The duplicate plugin will be ignored since it's version is not newer than the already loaded one")
-        LOG.info(str(counter) + ' plugins available.')
-        # Sort self.DataCollectors by ['order'] number
-        self.DataCollectors = OrderedDict(sorted(self.DataCollectors.iteritems(), key=lambda x: x[1]['order']))
+                    LOG.debug("Duplicate plugin found and it will not be loaded: '" + plugin.name + " Version " + str(plugin.version) + "': " + plugin.path)
+                    LOG.debug("Plugin already loaded from: '" + self.DataCollectors[plugin_key_name]['info'].path)
+        LOG.info(str(len(self.DataCollectors)) + ' plugins available.')
+        # Sort self.DataCollectors by plugin name and version
+        self.DataCollectors = OrderedDict(sorted(self.DataCollectors.iteritems(), key=lambda x: (x[1]['info'].name, x[1]['info'].version)))
 
-    def update_available_plugins(self, plugin_info, order):
-        """
-        Store a plugin in self.DataCollectors
-        """
-        plugin_info.plugin_object.config = plugin_info.details
-        self.DataCollectors[plugin_info.name] = {}
-        self.DataCollectors[plugin_info.name]['plugin'] = plugin_info.plugin_object
-        self.DataCollectors[plugin_info.name]['order'] = order
-        self.DataCollectors[plugin_info.name]['info'] = plugin_info
+        counter = 0
+        for plugin in self.DataCollectors.values():
+            counter += 1
+            plugin['order'] = counter
 
-    def update_active_plugins(self, symlink, plugin_info, order, active_plugin_conf_file):
-        """
-        Store an active plugin in self.ActiveDataCollectors
-        """
-        # If a configuration file exists in the active directory
-        # load it and override existing options
-        if(os.path.exists(active_plugin_conf_file)):
-            LOG.debug('Additional configuration file found for ' + plugin_info.name + ': ' + active_plugin_conf_file)
-            validate_config = SafeConfigParser()
-            validate_config.read(active_plugin_conf_file)
-            # Validate if it is a valid conf file in the active directory
-            if(not validate_config.has_section('Plugin')):
-                LOG.error("The plugin configuration file '" + active_plugin_conf_file + "' doesn't have any 'Plugin' section.")
-                LOG.error("'Plugin' section is necessary as long as you have a config file in the active directory")
-                exit(globalvars.exitCode.FAILURE)
-            plugin_info.plugin_object.config.read(active_plugin_conf_file)
 
-        self.ActiveDataCollectors[symlink] = {}
-        self.ActiveDataCollectors[symlink]['plugin'] = plugin_info.plugin_object
-        # Rerun readConfigVars() function since a new configuration file is loaded
-        self.ActiveDataCollectors[symlink]['plugin'].readConfigVars()
-        self.ActiveDataCollectors[symlink]['order'] = order
-        self.ActiveDataCollectors[symlink]['info'] = plugin_info
-        self.ActiveDataCollectors[symlink]['name'] = plugin_info.name
-
+    #----------------------------------------------------------------------
     def list_available_plugins(self):
         """
         Prints a list with the available plugins to the user
@@ -175,10 +165,12 @@ class Main(object):
         """
         print_(globalvars.PRINT_SEPARATOR)
         print_("List of available plugins:")
-        for name, plugin in self.DataCollectors.items():
-            print_(4 * " " + str(plugin['order']) + ": '" + name + " v" + str(plugin['info'].version) + "' located at '" + plugin['info'].path + "'")
+        for key, plugin in self.DataCollectors.items():
+            print_(4 * " " + str(plugin['order']) + ": '" + plugin['info'].name + " v" + str(plugin['info'].version) + "' located at '" + plugin['info'].path + "'")
             print_(8 * " " + " " * len(str(plugin['order'])) + "Module name: '" + os.path.basename(plugin['info'].path) + "'")
 
+
+    #----------------------------------------------------------------------
     def list_active_plugins(self):
         """
         Prints a list with the active plugins to the user
@@ -194,6 +186,7 @@ class Main(object):
             print_(8 * " " + " " * len(str(plugin['order'])) + "Module name: '" + os.path.basename(plugin['info'].path) + "'")
             print_(8 * " " + " " * len(str(plugin['order'])) + "Symlink loading this instance: '" + symlink_key + "'")
 
+
     #----------------------------------------------------------------------
     def activate_plugins_in_active_dir(self):
         """
@@ -203,7 +196,7 @@ class Main(object):
         LOG.info("Activating symlinked plugins located in '" + globalvars.active_plugins_dir + "'")
         activated_num = 0
         if(not os.path.isdir(globalvars.active_plugins_dir)):
-            LOG.critical("'" + globalvars.active_plugins_dir + "' is not a valid directory")
+            LOG.critical("'" + globalvars.active_plugins_dir + "' is not a valid directory. (Is the directory present?)")
             exit(globalvars.exitCode.FAILURE)
 
         for symlinked_plugin_name in os.listdir(globalvars.active_plugins_dir):
@@ -233,6 +226,9 @@ class Main(object):
                                         LOG.error("Not a valid 'Required_Kernel' version number defined for plugin '" + plugin.name + "'")
                                         exit(globalvars.exitCode.FAILURE)
 
+                            # The plugin needs to be activated.
+                            # When a plugin is activated, the main configuration file will be read
+                            # The main configuration file is the .metaconf for each plugin.
                             plugin.plugin_object.activate()
                             activated_num+=1
                             LOG.debug(4 * ' ' + "'" + plugin.name + " Version " + str(plugin.version) + "' activated")
@@ -240,8 +236,34 @@ class Main(object):
                                 LOG.debug(4 * ' ' + "Author: " + plugin.author)
                             if(plugin.website is not "None"):
                                 LOG.debug(4 * ' ' + "Website: " + plugin.website)
+
+                            # Get the filename of the potentially existing configuration file
+                            # for this plugin. If this file exist, it will override options
+                            # already read by the main configuration file.
                             active_plugin_conf_file = os.path.abspath(os.path.join(globalvars.active_plugins_dir, symlinked_plugin_name[0:-3] + '.conf'))
-                            self.update_active_plugins(symlinked_plugin, plugin, activated_num, active_plugin_conf_file)
+
+                            # If a configuration file exists in the active directory
+                            # load it and override existing options
+                            if(os.path.exists(active_plugin_conf_file)):
+                                LOG.debug('Additional configuration file found for ' + plugin.name + ': ' + active_plugin_conf_file)
+                                validate_config = SafeConfigParser()
+                                validate_config.read(active_plugin_conf_file)
+                                # Validate if it is a valid conf file in the active directory
+                                if(not validate_config.has_section('Plugin')):
+                                    LOG.error("The plugin configuration file '" + active_plugin_conf_file + "' doesn't have any 'Plugin' section.")
+                                    LOG.error("'Plugin' section is necessary as long as you have a config file in the active directory")
+                                    exit(globalvars.exitCode.FAILURE)
+                                plugin.plugin_object.config.read(active_plugin_conf_file)
+
+                            self.ActiveDataCollectors[symlinked_plugin] = {}
+                            self.ActiveDataCollectors[symlinked_plugin]['plugin'] = plugin.plugin_object
+                            # Re-run readConfigVars() function since a new configuration file might
+                            # have been loaded
+                            self.ActiveDataCollectors[symlinked_plugin]['plugin'].readConfigVars()
+                            self.ActiveDataCollectors[symlinked_plugin]['order'] = activated_num
+                            self.ActiveDataCollectors[symlinked_plugin]['info'] = plugin
+                            self.ActiveDataCollectors[symlinked_plugin]['name'] = plugin.name
+
         if(activated_num):
             # Sort self.ActiveDataCollectors by ['order'] number
             self.ActiveDataCollectors = OrderedDict(sorted(self.ActiveDataCollectors.iteritems(), key=lambda x: x[1]['order']))
@@ -254,6 +276,8 @@ class Main(object):
             self.list_available_plugins()
             exit(globalvars.exitCode.FAILURE)
 
+
+#----------------------------------------------------------------------
 def runCollectThreaded(toRun, result, key, prevResults):
     """
     Function ro run the collect jobs in threads.
@@ -265,6 +289,7 @@ def runCollectThreaded(toRun, result, key, prevResults):
     result[key] = toRun.collect(prevResults)
 
 
+#----------------------------------------------------------------------
 def main():
     # Load the main class
     main = Main()
@@ -325,6 +350,8 @@ def main():
             LOG.info("Saving data to file '" + globalvars.output_file + "'")
     initDataCollection(main)
 
+
+#----------------------------------------------------------------------
 def testPlugin(plugin):
     plugin.activate()
     plugin.getHeaders(globalvars.delimiter)
@@ -334,6 +361,8 @@ def testPlugin(plugin):
     print_("")
     plugin.print_(headers=True)
 
+
+#----------------------------------------------------------------------
 def initDataCollection(main):
     # Open the file for writing/appending
     handle = sys.stdout
@@ -389,6 +418,8 @@ def initDataCollection(main):
         if handle is not sys.stdout:
             handle.close()
 
+
+#----------------------------------------------------------------------
 def collectHeaders(main):
     # Store the samples from all plugins in the Sample dict
     Sample = {}
@@ -421,6 +452,8 @@ def collectHeaders(main):
 
     return Sample, line
 
+
+#----------------------------------------------------------------------
 def collectData(main, Sample):
     # Get the current time (it will be used to provide timestamps)
     dt = datetime.utcnow()
@@ -454,5 +487,7 @@ def collectData(main, Sample):
 
     return Sample, line, dt
 
+
+#----------------------------------------------------------------------
 if __name__ == '__main__':
     main()
