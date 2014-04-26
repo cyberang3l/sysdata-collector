@@ -1,0 +1,59 @@
+_sysdata_collector_longopts()
+{
+   local opts
+   
+   opts=$(sysdata-collector.py --help | grep -o '\-\-\([^ ]\)\+')
+   
+   COMPREPLY=( $(compgen -W "${opts}" -- $cur ) )
+}
+
+_sysdata_collector_get_available_plugins()
+{
+   for plugin in $(sysdata-collector.py --list-available-plugins 2>/dev/null | grep 'Module name' | awk '{print $3}')
+   do
+	echo ${plugin:1:-1}
+   done
+}
+
+_sysdata_collector_opt_subcompletions()
+{
+   local prev opts
+   
+   prev=$1
+   
+   sub_comp=$(sysdata-collector.py --help | grep -oP " (${prev}) \w+(\.\w+)?" | awk '{print $2}')
+   
+   if [[ "${sub_comp}" != "" ]]; then
+	if [[ "${sub_comp}" == "DIR" ]]; then
+	   _filedir -d
+	elif [[ "${sub_comp}" == "FILE" || "${sub_comp}" == "log_file" || "${sub_comp}" == "conf_file" ]]; then
+	   _filedir
+	elif [[ "${sub_comp}" == "PLUGIN.py" ]]; then
+	   COMPREPLY=( $(compgen -W "$(_sysdata_collector_get_available_plugins)" -- $cur ) )
+	fi
+   else
+	_sysdata_collector_longopts
+   fi
+}
+
+_sysdata_collector()
+{
+   local cur prev
+   _init_completion || return
+
+   COMPREPLY=()
+   cur=${COMP_WORDS[COMP_CWORD]}
+   prev=${COMP_WORDS[COMP_CWORD-1]}
+   
+   _expand || return 0
+   
+   if [[ "${prev}" == "-"* ]]; then
+	_sysdata_collector_opt_subcompletions "${prev}"
+	return 0
+   fi
+   
+   _sysdata_collector_longopts
+   
+   
+}
+complete -F _sysdata_collector sysdata-collector.py
