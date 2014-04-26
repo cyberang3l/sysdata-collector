@@ -23,17 +23,22 @@ _sysdata_collector_opt_subcompletions()
    
    sub_comp=$(sysdata-collector.py --help | grep -oP " (${prev}) \w+(\.\w+)?" | awk '{print $2}')
    
-   if [[ "${sub_comp}" != "" ]]; then
-	if [[ "${sub_comp}" == "DIR" ]]; then
+   case "${sub_comp}" in
+	DIR)
 	   _filedir -d
-	elif [[ "${sub_comp}" == "FILE" || "${sub_comp}" == "log_file" || "${sub_comp}" == "conf_file" ]]; then
+	   ;;
+	FILE|log_file|conf_file)
 	   _filedir
-	elif [[ "${sub_comp}" == "PLUGIN.py" ]]; then
+	   ;;
+	PLUGIN.py)
 	   COMPREPLY=( $(compgen -W "$(_sysdata_collector_get_available_plugins)" -- $cur ) )
-	fi
-   else
-	_sysdata_collector_longopts
-   fi
+	   ;;
+	"")
+	   _sysdata_collector_longopts
+	   ;;
+	*)
+	;;
+   esac
 }
 
 _sysdata_collector()
@@ -49,11 +54,8 @@ _sysdata_collector()
    
    if [[ "${prev}" == "-"* ]]; then
 	_sysdata_collector_opt_subcompletions "${prev}"
-	return 0
+   else
+	_sysdata_collector_longopts
    fi
-   
-   _sysdata_collector_longopts
-   
-   
 }
 complete -F _sysdata_collector sysdata-collector.py
