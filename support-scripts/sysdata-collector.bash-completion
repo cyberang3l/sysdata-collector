@@ -38,11 +38,14 @@ _sysdata_collector_opt_subcompletions()
             _filedir -d
             ;;
         FILE|LOG_FILE|CONF_FILE)
-           _filedir
-           ;;
+            _filedir
+            ;;
         PLUGIN.py)
-           COMPREPLY=( $(compgen -W "$(_sysdata_collector_get_available_plugins)" -- $cur ) )
-           ;;
+            COMPREPLY=( $(compgen -W "$(_sysdata_collector_get_available_plugins)" -- $cur ) )
+            ;;
+        LOG_LEVEL)
+            COMPREPLY=( $(compgen -W "INFO WARNING ERROR CRITICAL DEBUG" -- $cur ) )
+            ;;
         "")
             _sysdata_collector_longopts
             ;;

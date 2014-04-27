@@ -128,7 +128,7 @@ def _command_Line_Options():
                         default=globalvars.conf_file,
                         dest="conffile",
                         metavar="CONF_FILE",
-                        help="conf_file where the configuration will be read from (Default: will search for file '" +
+                        help="CONF_FILE where the configuration will be read from (Default: will search for file '" +
                         globalvars.DEFAULT_CONFIG_FILENAME +
                         "' in the known predefined locations")
     parser.add_argument("-D", "--daemon",
@@ -148,14 +148,14 @@ def _command_Line_Options():
                                   action="store",
                                   default="NOTSET",
                                   dest="loglevel",
-                                  metavar="log_level",
-                                  help="log_level might be set to: CRITICAL, ERROR, WARNING, INFO, DEBUG. (Default: INFO)")
+                                  metavar="LOG_LEVEL",
+                                  help="LOG_LEVEL might be set to: CRITICAL, ERROR, WARNING, INFO, DEBUG. (Default: INFO)")
     loggingGroupOpts.add_argument("-F", "--logfile",
                                   action="store",
                                   default=globalvars.log_file,
                                   dest="logfile",
                                   metavar="LOG_FILE",
-                                  help="log_file where the logs will be stored. If the file exists, text will be appended," +
+                                  help="LOG_FILE where the logs will be stored. If the file exists, text will be appended," +
                                   " otherwise the file will be created (Default: " + globalvars.log_file + ")")
 
     return parser.parse_args();
