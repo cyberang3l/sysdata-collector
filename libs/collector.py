@@ -15,7 +15,7 @@
 
 import os
 import logging
-from libs.helperfuncs import print_, flatten_nested_dicts
+from libs.helperfuncs import print_, flatten_nested_dicts, split_strip
 from yapsy.IPlugin import IPlugin
 from abc import ABCMeta, abstractmethod
 from time import sleep
@@ -25,16 +25,23 @@ from libs.helperfuncs import get_kernel_version
 from distutils.version import StrictVersion
 import fnmatch
 
-# You can use the LOG for debugging purposes.
-# Use like this: LOG.debug("My plugin's message!")
-# Then check the sysdata-collector's log file to
-# find this message
-LOG = logging.getLogger('default.' + __name__)
-
 class DataCollector(IPlugin):
     """
     DataCollector abstract superclass
     """
+
+    # You can use the LOG for debugging purposes.
+    # Use like this: self.LOG.debug("My plugin's message!")
+    # Then check the sysdata-collector's log file to
+    # find this message
+    LOG = logging.getLogger('default.' + __name__)
+
+    # Static var types for use as 'paramtype' in readConfParameter()
+    # Do not change
+    BOOL  = True
+    STR   = 'string'
+    INT   = 2 # Do not use 0 or 1, because False == 0 and True == 1
+    FLOAT = 2.1
 
     def __init__(self):
         """
@@ -45,6 +52,11 @@ class DataCollector(IPlugin):
 
         # Get the headers when the plugin is initialized
         self.headers = ''
+
+        # Get the name, version and path of this plugin
+        self.name = ''
+        self.version = ''
+        self.path = ''
 
         # A configParser instance with the contents of the plugin's metaconf file
         # This is useful whenever you want to parse some configuration to create
@@ -162,6 +174,13 @@ class DataCollector(IPlugin):
 
         Returns True if it is Greater or Equal to "kernel"
         Returns False otherwise
+
+        Example usage in cpu plugin:
+        if(self.runningKernelIsGEthan('2.6.11')):
+            # steal (supported since Linux 2.6.11)
+            #    Stolen time, which is the time spent in other operating
+            #    systems when running in a virtualized environment
+            samples[cpuName]['steal'] = r.groups[8]
         """
         if(StrictVersion(self.running_kernel_version) >= StrictVersion(kernel)):
             return True
@@ -205,6 +224,10 @@ class DataCollector(IPlugin):
                 if not strict:
                     if include not in store_final_fields:
                         store_final_fields.append(include)
+                else:
+                    self.LOG.error("'" + include + "' field cannot be accepted for plugin '" + self.name + " " + "v" + str(self.version) + "'")
+                    self.LOG.error("Please check your configuration files if this is a parameter you added in there.")
+                    exit(1)
 
         store_final_fields = sorted(store_final_fields)
 
@@ -219,3 +242,33 @@ class DataCollector(IPlugin):
                         store_final_fields.remove(field)
 
         return store_final_fields
+
+    def readConfParameter(self, config_dict, paramname, paramtype, multifields=False):
+        """
+        Read configuration parameter from ConfigParser.
+        This function will not return a value! However,
+        if paramname exists in the configuration file,
+        the value will be assigned to the config_dict[paramname]
+
+        paramname: the name of the parameter to be read
+        paramtype: str or bool is currently support
+        multifields: if the parameter is expected to read more
+                     than one value (comma separated), this should
+                     be set to True. The returned value in
+                     config_dict[paramname] will be a list.
+        """
+        Section = 'Plugin'
+        if self.config.has_section(Section):
+            if self.config.has_option(Section, paramname):
+                self.LOG.debug("Reading value for " + paramname)
+                if isinstance(paramtype, bool):
+                    config_dict[paramname] = self.config.getboolean(Section, paramname)
+                elif isinstance(paramtype, str):
+                    if multifields:
+                        config_dict[paramname] = split_strip(self.config.get(Section, paramname))
+                    else:
+                        config_dict[paramname] = self.config.get(Section, paramname)
+                else:
+                    config_dict[paramname] = self.config.get(Section, paramname)
+
+                self.LOG.debug(paramname + ' = ' + str(config_dict[paramname]))

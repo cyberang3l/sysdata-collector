@@ -141,6 +141,10 @@ class Main(object):
                     # Pass the metaconf file in the plugin.config variable, so that the
                     # plugin can access the configuration file
                     self.DataCollectors[plugin_key_name]['plugin'].config = plugin.details
+                    # Also name, version and path
+                    self.DataCollectors[plugin_key_name]['plugin'].name = plugin.name
+                    self.DataCollectors[plugin_key_name]['plugin'].version = plugin.version
+                    self.DataCollectors[plugin_key_name]['plugin'].path = plugin.path
                     self.DataCollectors[plugin_key_name]['info'] = plugin
                     self.DataCollectors[plugin_key_name]['order'] = 0
                     LOG.debug(4 * ' ' + "Found plugin: '" + plugin.name + " Version " + str(plugin.version) + "': " + plugin.path)
@@ -240,8 +244,8 @@ class Main(object):
                                 LOG.debug(4 * ' ' + "Website: " + plugin.website)
 
                             # Get the filename of the potentially existing configuration file
-                            # for this plugin. If this file exist, it will override options
-                            # already read by the main configuration file.
+                            # for this plugin. If this file exist in the active directory, it
+                            # will override options already read by the main configuration file.
                             active_plugin_conf_file = os.path.abspath(os.path.join(globalvars.active_plugins_dir, symlinked_plugin_name[0:-3] + '.conf'))
 
                             # If a configuration file exists in the active directory
@@ -251,17 +255,19 @@ class Main(object):
                                 validate_config = SafeConfigParser()
                                 validate_config.read(active_plugin_conf_file)
                                 # Validate if it is a valid conf file in the active directory
+                                # A valid conf file in the active directory should contain a 'Plugin' section
                                 if(not validate_config.has_section('Plugin')):
                                     LOG.error("The plugin configuration file '" + active_plugin_conf_file + "' doesn't have any 'Plugin' section.")
                                     LOG.error("'Plugin' section is necessary as long as you have a config file in the active directory")
                                     exit(globalvars.exitCode.FAILURE)
                                 plugin.plugin_object.config.read(active_plugin_conf_file)
+                                # Re-run readConfigVars() function since a new configuration has been loaded
+                                # This is necessary to override configuration with directives from the newly
+                                # loaded conf
+                                plugin.plugin_object.readConfigVars()
 
                             self.ActiveDataCollectors[symlinked_plugin] = {}
                             self.ActiveDataCollectors[symlinked_plugin]['plugin'] = plugin.plugin_object
-                            # Re-run readConfigVars() function since a new configuration file might
-                            # have been loaded
-                            self.ActiveDataCollectors[symlinked_plugin]['plugin'].readConfigVars()
                             self.ActiveDataCollectors[symlinked_plugin]['order'] = activated_num
                             self.ActiveDataCollectors[symlinked_plugin]['info'] = plugin
                             self.ActiveDataCollectors[symlinked_plugin]['name'] = plugin.name

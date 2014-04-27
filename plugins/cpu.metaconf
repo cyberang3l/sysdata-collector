@@ -11,7 +11,7 @@ Module = cpu.py
 
 # Version: the current version of this plugin
 # Required
-Version = 0.2.9a1
+Version = 0.5.0
 
 
 ########################################################
@@ -56,11 +56,13 @@ Description = Read CPU statistics from /proc/stat
 # If the cpu core does not exist, it will still be included
 # in the data collection, but 'Not Available' values will
 # be returned.
+# To include the cpu (which is the average of all cpu cores)
+# use 'cpus_avg_all'
 #
 # Unix shell-style wildcards are accepted for inclusion
 # of the cpu cores being present when the  data collection
 # starts
-include_cpu_cores = *, cpu5
+include_cpu_cores = *
 
 # exclude_cpu_cores: A list of comma separated cpu core names
 # (cpu0, cpu1, ..., cpuX) to be excluded from the data collection.

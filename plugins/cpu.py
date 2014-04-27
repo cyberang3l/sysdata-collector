@@ -13,26 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from libs.helperfuncs import *
+from libs.helperfuncs import quick_regexp
 from libs.collector import DataCollector
 import sys
-import time
 import traceback
 from collections import OrderedDict
-import fnmatch
 
 ########################################################################
 class cpu_stats(DataCollector):
     """
-    Plugin to read the CPU statistics from Linux based hosts
-
-    The CPU plugin can be used as a guideline to create more advanced
-    plugins. Nested dict values are used (because each CPU core has different
-    metrics to be collected), the prevResults is used to calculate
-    some values, it supports multiple kernels (by checking the running
-    kernel version and collecting data if supported), it reads configuration
-    variables from the metaconf and logs debug output in the log file using
-    LOG.debug().
+    Plugin to read the CPU statistics from Linux based hosts.
 
     --------------------------------------------------
 
@@ -50,13 +40,18 @@ class cpu_stats(DataCollector):
     """
 
     # Do not change the order of PROC_STAT_FIELDS!
+    # First 10 fields are per CPU specific fields
     PROC_STAT_FIELDS = (
         'user', 'nice', 'system', 'idle', 'iowait',
         'irq', 'softirq', 'steal', 'guest', 'guest_nice',
         'ctxt', 'btime', 'processes', 'procs_running', 'procs_blocked'
     )
 
+    # Store the CPU core names to collect data from
     cpu_cores_to_collect_data_from = []
+
+    # Store the fields to collect data from.
+    # All of the available fields can be seen in PROC_STAT_FIELDS
     fields_to_collect_data_from = []
 
     #----------------------------------------------------------------------
@@ -70,51 +65,21 @@ class cpu_stats(DataCollector):
             'NA_value': 'NA',
             'calc_cpu_perc': True
         }
-        self.calc_cpu_perc = True
 
-        Section = 'Plugin'
-        if(self.config.has_section(Section)):
-            VarToRead = 'calc_cpu_perc'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = self.config.getboolean(Section, VarToRead)
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
-
-            VarToRead = 'NA_value'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = self.config.get(Section, VarToRead)
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
-
-            VarToRead = 'include_cpu_cores'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = split_strip(self.config.get(Section, VarToRead))
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
-
-            VarToRead = 'exclude_cpu_cores'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = split_strip(self.config.get(Section, VarToRead))
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
-
-            VarToRead = 'fields_to_collect'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = split_strip(self.config.get(Section, VarToRead))
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
-
-            VarToRead = 'fields_to_exclude'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = split_strip(self.config.get(Section, VarToRead))
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
+        # Read parameters from the configuration file
+        self.readConfParameter(self.options, 'calc_cpu_perc', self.BOOL)
+        self.readConfParameter(self.options, 'include_cpu_cores', self.STR, True)
+        self.readConfParameter(self.options, 'exclude_cpu_cores', self.STR, True)
+        self.readConfParameter(self.options, 'fields_to_collect', self.STR, True)
+        self.readConfParameter(self.options, 'fields_to_exclude', self.STR, True)
+        self.readConfParameter(self.options, 'NA_value', self.STR)
 
         # Discover which cpu cores will be logged and log only these for the rest of the experiment
         # Store them in self.cpu_cores_to_collect_data_from
         try:
             available_cpu_cores = []
             r = quick_regexp()
+            # Open /proc/stat for get all available cpu cores
             with open('/proc/stat') as f:
                 for line in f.readlines():
                     if(r.search('cpu(\d+)?\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*(\d+)?\s*(\d+)?\s*(\d+)?', line)):
@@ -123,23 +88,27 @@ class cpu_stats(DataCollector):
                             cpuName = 'cpu' + r.groups[0]
                         else:
                             # The very first "cpu" line aggregates the numbers in all of the other "cpuN" lines.
-                            cpuName = 'cpu_avg_all'
+                            cpuName = 'cpus_avg_all'
+                        # Append the available cpu core in available_cpu_cores list
                         available_cpu_cores.append(cpuName)
 
+            # remove or add the included or excluded cpu core names read from the configuration file.
+            # store them in self.cpu_cores_to_collect_data_from
             self.cpu_cores_to_collect_data_from = self.include_exclude_fields(self.options['include_cpu_cores'],
                                                                               self.options['exclude_cpu_cores'],
                                                                               available_cpu_cores,
                                                                               strict=False)
 
-            LOG.debug('CPU cores to be used for data collection: ' + str(self.cpu_cores_to_collect_data_from))
+            self.LOG.debug('CPU cores to be used for data collection: ' + str(self.cpu_cores_to_collect_data_from))
         except:
-            LOG.debug(traceback.format_exc())
+            self.LOG.debug(traceback.format_exc())
 
+        # Get the fields which we should collect data for
         self.fields_to_collect_data_from = self.include_exclude_fields(self.options['fields_to_collect'],
                                                                        self.options['fields_to_exclude'],
                                                                        self.PROC_STAT_FIELDS)
 
-        LOG.debug('/proc/stat fields to be used for data collection: ' + str(self.fields_to_collect_data_from))
+        self.LOG.debug('/proc/stat fields to be used for data collection: ' + str(self.fields_to_collect_data_from))
 
         # If cpu percentage needs to be calculated,
         # at least 'user', 'nice', 'system' and 'idle' fields
@@ -159,8 +128,21 @@ class cpu_stats(DataCollector):
         # The returned numbers identify the amount of time the CPU has spent performing different kinds of work.
         # Time units are in USER_HZ or Jiffies (typically hundredths of a second).
         samples = OrderedDict()
+
+        # Add all of the-cpu core names in self.cpu_cores_to_collect_data_from to the samples.
+        # We do that here, because if any of the cores do not exist in the beginning of the
+        # data collection, we still want to collect NA values (it might be hotplugged later)
+        for cpuName in sorted(self.cpu_cores_to_collect_data_from):
+            if cpuName not in samples.keys():
+                samples[cpuName] = OrderedDict()
+                # The first 10 fields in self.PROC_STAT_FIELDS
+                # are cpu specific
+                for i in range(0, 9):
+                    field = self.PROC_STAT_FIELDS[i]
+                    if field in self.fields_to_collect_data_from:
+                        samples[cpuName][field] = self.options['NA_value']
+
         try:
-            # TODO: Need to consider the cpu cores not present, and add them in the final sample collected
             r = quick_regexp()
             with open('/proc/stat') as f:
                 for line in f.readlines():
@@ -170,43 +152,19 @@ class cpu_stats(DataCollector):
                             cpuName = 'cpu' + r.groups[0]
                         else:
                             # The very first "cpu" line aggregates the numbers in all of the other "cpuN" lines.
-                            # That's why we call it 'cpu_avg_all'
-                            cpuName = 'cpu_avg_all'
+                            # That's why we call it 'cpus_avg_all'
+                            cpuName = 'cpus_avg_all'
 
+                        # If the cpuName is listed in self.cpu_cores_to_collect_data_from
+                        # then we need to collect data for this cpu core
                         if cpuName in self.cpu_cores_to_collect_data_from:
                             samples[cpuName] = OrderedDict()
+                            # r.groups[0] stores the cpu core name, so
+                            # the fields start from r.groups[1]....r.groups[10]
                             for i in range(1, len(r.groups)):
                                 field = self.PROC_STAT_FIELDS[i-1]
                                 if field in self.fields_to_collect_data_from:
                                     samples[cpuName][field] = r.groups[i]
-
-                            ## This is the old, more readable version...
-                            ## In the new version, kernel version checks are not needed
-                            ## because the group is completely dynamic (due to the for/range loop)
-                            #samples[cpuName] = OrderedDict()
-                            ## user: Time spent in user mode.
-                            #samples[cpuName]['user'] = r.groups[1]
-                            ## nice: Time spent in user mode with low priority (nice)
-                            #samples[cpuName]['nice'] = r.groups[2]
-                            ## system: Time spent in system mode
-                            #samples[cpuName]['system'] = r.groups[3]
-                            ## idle: Time spent in the idle task. This value should be USER_HZ times the second entry in the /proc/uptime pseudo-file.
-                            #samples[cpuName]['idle'] = r.groups[4]
-                            ## iowait: Time waiting for I/O to complete.
-                            #samples[cpuName]['iowait'] = r.groups[5]
-                            ## irq: Time servicing interrupts.
-                            #samples[cpuName]['irq'] = r.groups[6]
-                            ## softirq: Time servicing softirqs.
-                            #samples[cpuName]['softirq'] = r.groups[7]
-                            #if(self.runningKernelIsGEthan('2.6.11')):
-                                ## steal (since Linux 2.6.11): Stolen time, which is the time spent in other operating systems when running in a virtualized environment
-                                #samples[cpuName]['steal'] = r.groups[8]
-                            #if(self.runningKernelIsGEthan('2.6.24')):
-                                ## guest (since Linux 2.6.24): Time spent running a virtual CPU for guest operating systems under the control of the Linux kernel.
-                                #samples[cpuName]['guest'] = r.groups[9]
-                            #if(self.runningKernelIsGEthan('2.6.33')):
-                                ## guest_nice (since Linux 2.6.33): Time spent running a niced guest (virtual CPU for guest operating systems under the control of the Linux kernel).
-                                #samples[cpuName]['guest_nice'] = r.groups[10]
                     else:
                         # Read ctxt, btime, processes, procs_running, procs_blocked
                         if(r.search('^(\S+)\s+(\d+)$', line)):
@@ -222,24 +180,30 @@ class cpu_stats(DataCollector):
                         samples[r.groups[0]]['percent'] = self.options['NA_value']
                         if prevResults:
                             # If prevResults are present, calculate the CPU usage percentage
-                            prevUser = float(prevResults[r.groups[0]]['user'])
-                            prevNice = float(prevResults[r.groups[0]]['nice'])
-                            prevSystem = float(prevResults[r.groups[0]]['system'])
-                            prevIdle = float(prevResults[r.groups[0]]['idle'])
-                            prevTotal = prevUser + prevNice + prevSystem + prevIdle
-
-                            User = float(samples[r.groups[0]]['user'])
-                            Nice = float(samples[r.groups[0]]['nice'])
-                            System = float(samples[r.groups[0]]['system'])
-                            Idle = float(samples[r.groups[0]]['idle'])
-                            Total = User + Nice + System + Idle
-
                             try:
+                                prevUser = float(prevResults[r.groups[0]]['user'])
+                                prevNice = float(prevResults[r.groups[0]]['nice'])
+                                prevSystem = float(prevResults[r.groups[0]]['system'])
+                                prevIdle = float(prevResults[r.groups[0]]['idle'])
+                                prevTotal = prevUser + prevNice + prevSystem + prevIdle
+
+                                User = float(samples[r.groups[0]]['user'])
+                                Nice = float(samples[r.groups[0]]['nice'])
+                                System = float(samples[r.groups[0]]['system'])
+                                Idle = float(samples[r.groups[0]]['idle'])
+                                Total = User + Nice + System + Idle
+
                                 samples[r.groups[0]]['percent']=round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2)
                             except ZeroDivisionError:
+                                # If the calculation returns ZeroDivisionError
+                                # continue quietly
+                                pass
+                            except ValueError:
+                                # If the previous value is not available, a ValueError
+                                # will be raised when the numbers are parsed
                                 pass
 
         except:
-            LOG.debug(traceback.format_exc())
+            self.LOG.debug(traceback.format_exc())
 
         return samples
