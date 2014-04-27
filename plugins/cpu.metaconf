@@ -11,13 +11,13 @@ Module = cpu.py
 
 # Version: the current version of this plugin
 # Required
-Version = 0.2.0
+Version = 0.2.9a1
 
 
 ########################################################
 [SupportOptions]
 ########################################################
-# Minimum required kernel version that 
+# Minimum required kernel version that
 # your plugin is going to work for
 # Optional
 Required_Kernel = 2.6.0
@@ -51,6 +51,88 @@ Description = Read CPU statistics from /proc/stat
 # You can add anything you want here, and parse it
 # from inside your plugin.
 
+# include_cpu_cores: A list of comma separated cpu core names
+# (cpu0, cpu1, ..., cpuX) to be included to the data collection.
+# If the cpu core does not exist, it will still be included
+# in the data collection, but 'Not Available' values will
+# be returned.
+#
+# Unix shell-style wildcards are accepted for inclusion
+# of the cpu cores being present when the  data collection
+# starts
+include_cpu_cores = *, cpu5
+
+# exclude_cpu_cores: A list of comma separated cpu core names
+# (cpu0, cpu1, ..., cpuX) to be excluded from the data collection.
+# Exclude is always coming after the include, so if you
+# include an cpu core in the include_interfaces parameter,
+# and exclude it in exclude_interfaces, the interface
+# will eventually be excluded.
+#
+# Unix shell-style wildcards are accepted for exclusion.
+# i.e. if you want to exclude cpu0, cpu1, cpu2,
+# you could add the following parameter in the option
+#   'exclude_cpu_cores = cpu[0-2]'
+#
+# Do not use a single * for exclusion, because this will
+# exclude everything!!
+# If you don't want to exclude any cpu, just comment
+# out or let this parameter to be empty
+exclude_cpu_cores =
+
+# fields_to_collect: A comma separated list of the fields
+# to be collected from /proc/stat
+#
+# A list of available field is following:
+#    user: Time spent in user mode.
+#    nice: Time spent in user mode with low priority (nice)
+#    system: Time spent in system mode
+#    idle: Time spent in the idle task. This value should be
+#          USER_HZ times the second entry in the /proc/uptime
+#          pseudo-file.
+#    iowait: Time waiting for I/O to complete.
+#    irq: Time servicing interrupts.
+#    softirq: Time servicing softirqs.
+#    steal: Stolen time, which is the time spent in other
+#           operating systems when running in a virtualized
+#           environment.
+#           * Available since Linux 2.6.11.
+#    guest: Time spent running a virtual CPU for guest operating
+#           systems under the control of the Linux kernel.
+#           * Available since Linux 2.6.24.
+#    guest_nice: Time spent running a niced guest (virtual CPU
+#                for guest operating systems under the control
+#                of the Linux kernel).
+#                * Available since Linux 2.6.33.
+#    ctxt: The number of context switches that the system
+#          underwent.
+#    btime: boot time, in seconds since the Epoch,
+#           1970-01-01 00:00:00 +0000 (UTC).
+#    processes: Number of forks since boot.
+#    procs_running: Number of processes in runnable state.
+#    procs_blocked: Number of processes blocked waiting
+#                   for I/O to complete.
+fields_to_collect = *
+
+# fields_to_exclude: A comma separated list of the fields
+# to be excluded from collection
+#
+# Do not use a single * for exclusion, because this will
+# exclude all of the field to be collected!!
+# If you don't want to exclude any field, just comment
+# out or let this parameter to be empty
+fields_to_exclude =
+
+# NA_value: value to use when the real value cannot be collected.
+# For example, at the very first iteration, if calc_cpu_perc
+# cannot be calculated even if it is set to True.
+# (because it needs to know some stats collected from these
+# previous run)
+NA_value = NA
+
 # calc_cpu_perc defines if the CPU usage percentages will
-# be calculated.
+# be calculated. If this option is set to True, at least
+# user, nice, system and idle fields will be collected,
+# because these fields are necessary for the calculation of
+# the percentage
 calc_cpu_perc = True

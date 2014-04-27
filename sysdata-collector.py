@@ -106,8 +106,7 @@ class Main(object):
     #----------------------------------------------------------------------
     def get_available_plugins(self):
         """
-        Get the available plugins and store them in self.DataCollectors by calling
-        the self.update_available_plugins() function.
+        Get the available plugins and store them in self.DataCollectors.
 
         Plugins are read in order from different directories (desribed below), and
         if a plugin with the same name and version is encountered in more than one
@@ -139,6 +138,9 @@ class Main(object):
                     # Store the plugin in self.DataCollectors
                     self.DataCollectors[plugin_key_name] = {}
                     self.DataCollectors[plugin_key_name]['plugin'] = plugin.plugin_object
+                    # Pass the metaconf file in the plugin.config variable, so that the
+                    # plugin can access the configuration file
+                    self.DataCollectors[plugin_key_name]['plugin'].config = plugin.details
                     self.DataCollectors[plugin_key_name]['info'] = plugin
                     self.DataCollectors[plugin_key_name]['order'] = 0
                     LOG.debug(4 * ' ' + "Found plugin: '" + plugin.name + " Version " + str(plugin.version) + "': " + plugin.path)
@@ -491,3 +493,7 @@ def collectData(main, Sample):
 #----------------------------------------------------------------------
 if __name__ == '__main__':
     main()
+
+# TODO: --test-plugin, should be able to differantiate different versions of the same plugins.
+#       Currently testing by module name, but if the plugin is the same, even if the version is different
+#       the name will still be the same.

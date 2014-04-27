@@ -23,6 +23,7 @@ from platform import release
 from ConfigParser import ConfigParser
 from libs.helperfuncs import get_kernel_version
 from distutils.version import StrictVersion
+import fnmatch
 
 # You can use the LOG for debugging purposes.
 # Use like this: LOG.debug("My plugin's message!")
@@ -166,3 +167,55 @@ class DataCollector(IPlugin):
             return True
         else:
             return False
+
+    def include_exclude_fields(self, fields_to_be_included, fields_to_be_excluded, all_accepted_fields, strict=True):
+        """
+        When it is needed to include/exclude fields, this function will do the job.
+
+        fields_to_be_included: a list of fields to be included
+        fields_to_be_excluded: a list of fields to be excluded
+        all_available_fields: a list with all of the available fields which is
+                              possible to use
+        strict: if strict is True, and a field to be included or excluded is
+                not present in all_available_fields, and error will be raised.
+                Otherwise, the field will be added for data collection.
+                In the latter case, you have to make sure that NA (Not Available)
+                values are taken into consideration, in case that the script
+                cannot collect values for the specified field. (This is useful
+                if you want to collect data for fields that are not present
+                at the time when data collection started. i.e. a device
+                might be hot plugged or unplugged)
+        """
+        store_final_fields = []
+
+        # First include all of the fields defined in fields_to_be_included
+        for include in fields_to_be_included:
+            match = fnmatch.filter(all_accepted_fields, include)
+            # If there is a match, the field to be included is accepted
+            # is present in all_accepted_fields.
+            # Since we accept POSIX style regular expressions, the match
+            # might contain more than one fields to be included
+            if match:
+                for field in match:
+                    if field not in store_final_fields:
+                        store_final_fields.append(field)
+            else:
+                # If there is no match, the field is not present at the moment,
+                # however, if strict is false, we still want to collect data for it
+                if not strict:
+                    if include not in store_final_fields:
+                        store_final_fields.append(include)
+
+        store_final_fields = sorted(store_final_fields)
+
+        # Then start the exclusion.
+        # Since we accept POSIX style regular expressions, the match
+        # might contain more than one fields to be excluded
+        for exclude in fields_to_be_excluded:
+            match = fnmatch.filter(store_final_fields, exclude)
+            if match:
+                for field in match:
+                    if field in store_final_fields:
+                        store_final_fields.remove(field)
+
+        return store_final_fields

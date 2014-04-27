@@ -34,6 +34,7 @@ class net_stats(DataCollector):
     http://www.linuxhowtos.org/manpages/5/proc.htm    #(Search for /proc/net/dev)
     """
 
+    # Do not change the order of NETDEV_FIELDS!
     NETDEV_FIELDS = (
         'bytes', 'packets', 'errs', 'drop',
         'fifo', 'frame', 'compressed', 'multicast'
@@ -77,6 +78,8 @@ class net_stats(DataCollector):
                 self.options[VarToRead] = split_strip(self.config.get(Section, VarToRead))
                 LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
 
+        # TODO: Add fields_to_exclude
+        # Use the self.include_exclude_fields() function
 
         # Discover which network interfaces will be logged and log only these interfaces for the rest of the experiment
         # Store them in self.interface_to_collect_data_from
@@ -154,6 +157,8 @@ class net_stats(DataCollector):
                                     j = i-8
                                     prepend='tx_'
 
+                                # TODO: This might be wrong...
+                                # What happens if the user puts the fields randomly in the configuration file?
                                 for field in self.options['fields_to_collect']:
                                     if field == self.NETDEV_FIELDS[j-1]:
                                         field = self.NETDEV_FIELDS[j-1]
