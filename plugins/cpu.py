@@ -32,8 +32,7 @@ class cpu_stats(DataCollector):
 
     # More information/documentation on /proc/stat
     http://www.linuxhowtos.org/System/procstat.htm
-    http://www.linuxhowtos.org/manpages/5/proc.htm    #(Search for /proc/stat)
-    http://www.mjmwired.net/kernel/Documentation/filesystems/proc.txt#1202
+    https://www.kernel.org/doc/Documentation/filesystems/proc.txt    #(Search for /proc/stat)
 
     # Simple calculation of the cpu percentage
     http://unix.stackexchange.com/questions/27076/how-can-i-receive-top-like-cpu-statistics-from-the-shell?answertab=active#tab-top
@@ -158,7 +157,6 @@ class cpu_stats(DataCollector):
                         # If the cpuName is listed in self.cpu_cores_to_collect_data_from
                         # then we need to collect data for this cpu core
                         if cpuName in self.cpu_cores_to_collect_data_from:
-                            samples[cpuName] = OrderedDict()
                             # r.groups[0] stores the cpu core name, so
                             # the fields start from r.groups[1]....r.groups[10]
                             for i in range(1, len(r.groups)):
@@ -193,12 +191,13 @@ class cpu_stats(DataCollector):
                                 Idle = float(samples[r.groups[0]]['idle'])
                                 Total = User + Nice + System + Idle
 
-                                samples[r.groups[0]]['percent']=round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2)
+                                samples[r.groups[0]]['percent'] = str(round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2))
                             except ZeroDivisionError:
                                 # If the calculation returns ZeroDivisionError
                                 # continue quietly
                                 pass
                             except ValueError:
+                                self.LOG.debug(traceback.format_exc())
                                 # If the previous value is not available, a ValueError
                                 # will be raised when the numbers are parsed
                                 pass

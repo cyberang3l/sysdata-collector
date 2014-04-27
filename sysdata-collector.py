@@ -451,12 +451,15 @@ def collectHeaders(main):
         threads[symlink].join()
         del threads[symlink]
 
+        # If it is the very first iteration, print the datetine and unix timestamp
         if i == 0:
             line += 'datetime' + globalvars.delimiter + 'timestamp' + globalvars.delimiter
-        if i == last_value_in_dict:
-            line += Sample[symlink]['headers']
-        else:
-            line += Sample[symlink]['headers'] + globalvars.delimiter
+
+        if Sample[symlink]['headers']:
+            if i == last_value_in_dict:
+                line += Sample[symlink]['headers']
+            else:
+                line += Sample[symlink]['headers'] + globalvars.delimiter
 
     return Sample, line
 
@@ -482,16 +485,19 @@ def collectData(main, Sample):
     for i, symlink in enumerate(main.ActiveDataCollectors):
         threads[symlink].join()
         del threads[symlink]
+        # If it is the very first iteration, print the datetine and unix timestamp
+        if i == 0:
+            line += datetime_started_collection + globalvars.delimiter + timestamp_started_collection + globalvars.delimiter
+
         flat_dict = flatten_nested_dicts(Sample[symlink]['currentResults'])
         last_value_in_flat_dict = len(flat_dict) - 1
         for j, key in enumerate(flat_dict):
-            if i == 0 and j == 0:
-                line += datetime_started_collection + globalvars.delimiter + timestamp_started_collection + globalvars.delimiter
-            if i == last_value_in_dict and j == last_value_in_flat_dict:
-                line += str(flat_dict[key])
-            else:
-                line += str(flat_dict[key]) + globalvars.delimiter
-            Sample[symlink]['prevResults'] = Sample[symlink]['currentResults']
+            if flat_dict[key]:
+                if i == last_value_in_dict and j == last_value_in_flat_dict:
+                    line += str(flat_dict[key])
+                else:
+                    line += str(flat_dict[key]) + globalvars.delimiter
+                Sample[symlink]['prevResults'] = Sample[symlink]['currentResults']
 
     return Sample, line, dt
 

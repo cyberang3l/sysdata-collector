@@ -3,7 +3,7 @@
 ########################################################
 Name = Net Stats
 Module = net.py
-Version = 0.1.0
+Version = 0.2.0
 
 
 ########################################################
@@ -42,7 +42,7 @@ include_interfaces = *
 # exclude all of the interfaces!
 # If you don't want to exclude any interface, just comment
 # out this parameter
-exclude_interfaces = 
+exclude_interfaces =
 
 # NA_value: If you want to collect data for an interface
 # that is expected not to be present from time to time
@@ -75,3 +75,12 @@ NA_value = NA
 #   multicast: The number of multicast frames transmitted or
 #              received by the device driver.
 fields_to_collect = bytes, packets, errs, drop
+
+# fields_to_exclude: A comma separated list of the fields
+# to be excluded from collection
+#
+# Do not use a single * for exclusion, because this will
+# exclude all of the field to be collected!!
+# If you don't want to exclude any field, just comment
+# out or let this parameter to be empty
+fields_to_exclude =

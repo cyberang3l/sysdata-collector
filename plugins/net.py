@@ -40,43 +40,29 @@ class net_stats(DataCollector):
         'fifo', 'frame', 'compressed', 'multicast'
     )
 
-    interface_to_collect_data_from = []
+    # Store the network interface names to collect data from
+    interfaces_to_collect_data_from = []
+
+    # Store the fields to collect data from.
+    # All of the available fields can be seen in NETDEV_FIELDS
+    fields_to_collect_data_from = []
 
     #----------------------------------------------------------------------
     def readConfigVars(self):
         # Default is to include all of the interfaces
         self.options = {
-            'exclude_interfaces': [],
             'include_interfaces': ['*'],
-            'NA_value': 'NA',
-            'fields_to_collect': ['bytes', 'packets', 'errs', 'drop']
+            'exclude_interfaces': [],
+            'fields_to_collect': ['bytes', 'packets', 'errs', 'drop'],
+            'fields_to_exclude': [],
+            'NA_value': 'NA'
         }
 
-        Section = 'Plugin'
-        if(self.config.has_section(Section)):
-            VarToRead = 'exclude_interfaces'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = split_strip(self.config.get(Section, VarToRead))
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
-
-            VarToRead = 'include_interfaces'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = split_strip(self.config.get(Section, VarToRead))
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
-
-            VarToRead = 'NA_value'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = self.config.get(Section, VarToRead)
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
-
-            VarToRead = 'fields_to_collect'
-            if(self.config.has_option(Section, VarToRead)):
-                LOG.debug("Reading value for " + VarToRead)
-                self.options[VarToRead] = split_strip(self.config.get(Section, VarToRead))
-                LOG.debug(VarToRead + ' = ' + str(self.options[VarToRead]))
+        self.readConfParameter(self.options, 'include_interfaces', self.STR, True)
+        self.readConfParameter(self.options, 'exclude_interfaces', self.STR, True)
+        self.readConfParameter(self.options, 'fields_to_collect', self.STR, True)
+        self.readConfParameter(self.options, 'fields_to_exclude', self.STR, True)
+        self.readConfParameter(self.options, 'NA_value', self.STR)
 
         # TODO: Add fields_to_exclude
         # Use the self.include_exclude_fields() function
@@ -92,35 +78,25 @@ class net_stats(DataCollector):
                         ifName = r.groups[0]
                         available_interfaces.append(ifName)
 
-            # First include all of the interfaces defined in include_interfaces
-            for include in self.options['include_interfaces']:
-                match = fnmatch.filter(available_interfaces, include)
-                # If there is a match ('include' is already in the interfaces)
-                if match:
-                    for ifName in match:
-                        if ifName not in self.interface_to_collect_data_from:
-                            self.interface_to_collect_data_from.append(ifName)
-                else:
-                    # If there is no match, most likely the interface is not
-                    # present at the moment, however, we still want to collect
-                    # data for it
-                    if include not in self.interface_to_collect_data_from:
-                        self.interface_to_collect_data_from.append(include)
+            self.interfaces_to_collect_data_from = sorted(
+                self.include_exclude_fields(
+                    self.options['include_interfaces'],
+                    self.options['exclude_interfaces'],
+                    available_interfaces, strict=False
+                )
+            )
 
-            # Sort by interface name
-            self.interface_to_collect_data_from = sorted(self.interface_to_collect_data_from)
-
-            # Then start the exclusion if some of them are defined in exclude_interfaces
-            for exclude in self.options['exclude_interfaces']:
-                match = fnmatch.filter(self.interface_to_collect_data_from, exclude)
-                if match:
-                    for exclude in match:
-                        if exclude in self.interface_to_collect_data_from:
-                            self.interface_to_collect_data_from.remove(exclude)
-
-            LOG.debug('Network interfaces to be used for data collection: ' + str(self.interface_to_collect_data_from))
+            LOG.debug('Network interfaces to be used for data collection: ' + str(self.interfaces_to_collect_data_from))
         except:
             LOG.debug(traceback.format_exc())
+
+        self.fields_to_collect_data_from = self.include_exclude_fields(
+            self.options['fields_to_collect'],
+            self.options['fields_to_exclude'],
+            self.NETDEV_FIELDS
+        )
+
+        self.LOG.debug('/proc/net/dev fields to be used for data collection: ' + str(self.fields_to_collect_data_from))
 
     #----------------------------------------------------------------------
     def collect(self, prevResults = {}):
@@ -136,19 +112,21 @@ class net_stats(DataCollector):
               tap0:    7714      81    0    0    0     0          0         0     7714      81    0    0    0     0       0          0
         """
         samples = OrderedDict()
-        try:
-            for ifName in self.interface_to_collect_data_from:
-                samples[ifName] = OrderedDict()
-                for field in self.options['fields_to_collect']:
+
+        for ifName in self.interfaces_to_collect_data_from:
+            samples[ifName] = OrderedDict()
+            for field in self.NETDEV_FIELDS:
+                if field in self.fields_to_collect_data_from:
                     samples[ifName]['rx_' + field] = self.options['NA_value']
                     samples[ifName]['tx_' + field] = self.options['NA_value']
 
+        try:
             r = quick_regexp()
             with open('/proc/net/dev') as f:
                 for line in f.readlines():
                     if(r.search('(\S+):\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)', line)):
                         ifName = r.groups[0]
-                        if ifName in self.interface_to_collect_data_from:
+                        if ifName in self.interfaces_to_collect_data_from:
                             for i in range(1, len(r.groups)):
                                 if i <= 8:
                                     j = i
@@ -157,13 +135,10 @@ class net_stats(DataCollector):
                                     j = i-8
                                     prepend='tx_'
 
-                                # TODO: This might be wrong...
-                                # What happens if the user puts the fields randomly in the configuration file?
-                                for field in self.options['fields_to_collect']:
-                                    if field == self.NETDEV_FIELDS[j-1]:
-                                        field = self.NETDEV_FIELDS[j-1]
-                                        key = prepend + field
-                                        samples[ifName][key] = r.groups[i]
+                                field = self.NETDEV_FIELDS[j-1]
+                                if field in self.fields_to_collect_data_from:
+                                    key = prepend + field
+                                    samples[ifName][key] = r.groups[i]
 
 
             ## TODO: Add an option to calculate speed/second from previous collection
