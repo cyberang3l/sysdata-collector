@@ -131,9 +131,10 @@ class external_plugins(DataCollector):
 
         # Check if the return code is zero (which means that the script was executed successfully)
         if (cmd.getReturnCode() != 0):
-            LOG.critical("Execution return code of the external script '" + externalScriptPath + "' is '" + str(cmd.getReturnCode()) + "'")
-            LOG.critical("Please check what went wrong with the script. Aborting execution.")
-            thread.interrupt_main()
+            LOG.warn("Execution return code of the external script '" + externalScriptPath + "' is '" + str(cmd.getReturnCode()) + "'")
+            LOG.warn("Please check what went wrong with the script. Aborting execution.")
+            # Use thread.interrupt_main() if you want to kill the parent who started the thread, and exit from the program
+            #thread.interrupt_main()
 
 
         # Get the basename of the script without the extension

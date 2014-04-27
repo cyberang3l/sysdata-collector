@@ -113,14 +113,10 @@ class cpu_stats(DataCollector):
         # at least 'user', 'nice', 'system' and 'idle' fields
         # need to be collected
         if self.options['calc_cpu_perc']:
-            if 'user' not in self.fields_to_collect_data_from:
-                self.fields_to_collect_data_from.append('user')
-            if 'nice' not in self.fields_to_collect_data_from:
-                self.fields_to_collect_data_from.append('nice')
-            if 'system' not in self.fields_to_collect_data_from:
-                self.fields_to_collect_data_from.append('system')
-            if 'idle' not in self.fields_to_collect_data_from:
-                self.fields_to_collect_data_from.append('idle')
+            needed_for_calc_cpu_perc = ['user', 'nice', 'system', 'idle']
+            for needed_field in needed_for_calc_cpu_perc:
+                if needed_field not in self.fields_to_collect_data_from:
+                    self.fields_to_collect_data_from.append(needed_field)
 
     #----------------------------------------------------------------------
     def collect(self, prevResults = {}):
@@ -168,41 +164,41 @@ class cpu_stats(DataCollector):
                         if(r.search('^(\S+)\s+(\d+)$', line)):
                             if r.groups[0] in self.fields_to_collect_data_from:
                                 samples[r.groups[0]] = r.groups[1]
-
-            # cpu percentage (needs to be calculated) if self.options['calc_cpu_perc'] == True
-            if self.options['calc_cpu_perc']:
-                for key in samples:
-                    # Get only the values with a cpu* header
-                    if(r.search('(cpu\S+)', key)):
-                        # Create the header with a 'Not calculated' value
-                        samples[r.groups[0]]['percent'] = self.options['NA_value']
-                        if prevResults:
-                            # If prevResults are present, calculate the CPU usage percentage
-                            try:
-                                prevUser = float(prevResults[r.groups[0]]['user'])
-                                prevNice = float(prevResults[r.groups[0]]['nice'])
-                                prevSystem = float(prevResults[r.groups[0]]['system'])
-                                prevIdle = float(prevResults[r.groups[0]]['idle'])
-                                prevTotal = prevUser + prevNice + prevSystem + prevIdle
-
-                                User = float(samples[r.groups[0]]['user'])
-                                Nice = float(samples[r.groups[0]]['nice'])
-                                System = float(samples[r.groups[0]]['system'])
-                                Idle = float(samples[r.groups[0]]['idle'])
-                                Total = User + Nice + System + Idle
-
-                                samples[r.groups[0]]['percent'] = str(round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2))
-                            except ZeroDivisionError:
-                                # If the calculation returns ZeroDivisionError
-                                # continue quietly
-                                pass
-                            except ValueError:
-                                self.LOG.debug(traceback.format_exc())
-                                # If the previous value is not available, a ValueError
-                                # will be raised when the numbers are parsed
-                                pass
-
         except:
             self.LOG.debug(traceback.format_exc())
+
+        # cpu percentage (needs to be calculated) if self.options['calc_cpu_perc'] == True
+        if self.options['calc_cpu_perc']:
+            for key in samples:
+                # Get only the values with a cpu* header
+                if(r.search('(cpu\S+)', key)):
+                    # Create the header with a 'Not calculated' value
+                    samples[r.groups[0]]['percent'] = self.options['NA_value']
+                    if prevResults:
+                        # If prevResults are present, calculate the CPU usage percentage
+                        try:
+                            prevUser = float(prevResults[r.groups[0]]['user'])
+                            prevNice = float(prevResults[r.groups[0]]['nice'])
+                            prevSystem = float(prevResults[r.groups[0]]['system'])
+                            prevIdle = float(prevResults[r.groups[0]]['idle'])
+                            prevTotal = prevUser + prevNice + prevSystem + prevIdle
+
+                            User = float(samples[r.groups[0]]['user'])
+                            Nice = float(samples[r.groups[0]]['nice'])
+                            System = float(samples[r.groups[0]]['system'])
+                            Idle = float(samples[r.groups[0]]['idle'])
+                            Total = User + Nice + System + Idle
+
+                            samples[r.groups[0]]['percent'] = str(round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2))
+                        except ZeroDivisionError:
+                            # If the calculation returns ZeroDivisionError
+                            # continue quietly
+                            pass
+                        except ValueError:
+                            # If the previous value is not available, a ValueError
+                            # will be raised when the numbers are parsed
+                            pass
+
+
 
         return samples

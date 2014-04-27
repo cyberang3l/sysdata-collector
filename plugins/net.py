@@ -36,8 +36,10 @@ class net_stats(DataCollector):
 
     # Do not change the order of NETDEV_FIELDS!
     NETDEV_FIELDS = (
-        'bytes', 'packets', 'errs', 'drop',
-        'fifo', 'frame', 'compressed', 'multicast'
+        'rx_bytes', 'rx_packets', 'rx_errs', 'rx_drop',
+        'rx_fifo', 'frame', 'rx_compressed', 'multicast',
+        'tx_bytes', 'tx_packets', 'tx_errs', 'tx_drop',
+        'tx_fifo', 'colls', 'carrier', 'tx_compressed'
     )
 
     # Store the network interface names to collect data from
@@ -55,6 +57,7 @@ class net_stats(DataCollector):
             'exclude_interfaces': [],
             'fields_to_collect': ['bytes', 'packets', 'errs', 'drop'],
             'fields_to_exclude': [],
+            'calculate_totals': True,
             'NA_value': 'NA'
         }
 
@@ -63,9 +66,7 @@ class net_stats(DataCollector):
         self.readConfParameter(self.options, 'fields_to_collect', self.STR, True)
         self.readConfParameter(self.options, 'fields_to_exclude', self.STR, True)
         self.readConfParameter(self.options, 'NA_value', self.STR)
-
-        # TODO: Add fields_to_exclude
-        # Use the self.include_exclude_fields() function
+        self.readConfParameter(self.options, 'calculate_totals', self.BOOL)
 
         # Discover which network interfaces will be logged and log only these interfaces for the rest of the experiment
         # Store them in self.interface_to_collect_data_from
@@ -98,6 +99,7 @@ class net_stats(DataCollector):
 
         self.LOG.debug('/proc/net/dev fields to be used for data collection: ' + str(self.fields_to_collect_data_from))
 
+
     #----------------------------------------------------------------------
     def collect(self, prevResults = {}):
         """
@@ -113,12 +115,13 @@ class net_stats(DataCollector):
         """
         samples = OrderedDict()
 
+        # Initiate the samples dict for all the interfaces that we will
+        # collect data from
         for ifName in self.interfaces_to_collect_data_from:
             samples[ifName] = OrderedDict()
             for field in self.NETDEV_FIELDS:
                 if field in self.fields_to_collect_data_from:
-                    samples[ifName]['rx_' + field] = self.options['NA_value']
-                    samples[ifName]['tx_' + field] = self.options['NA_value']
+                    samples[ifName][field] = self.options['NA_value']
 
         try:
             r = quick_regexp()
@@ -128,48 +131,56 @@ class net_stats(DataCollector):
                         ifName = r.groups[0]
                         if ifName in self.interfaces_to_collect_data_from:
                             for i in range(1, len(r.groups)):
-                                if i <= 8:
-                                    j = i
-                                    prepend='rx_'
-                                else:
-                                    j = i-8
-                                    prepend='tx_'
-
-                                field = self.NETDEV_FIELDS[j-1]
+                                field = self.NETDEV_FIELDS[i-1]
                                 if field in self.fields_to_collect_data_from:
-                                    key = prepend + field
-                                    samples[ifName][key] = r.groups[i]
-
-
-            ## TODO: Add an option to calculate speed/second from previous collection
-            ## Similar to the way
-            ## cpu percentage (needs to be calculated) if self.calc_cpu_perc == True
-            #if self.calc_cpu_perc:
-                #for key in samples:
-                    ## Get only the values with a cpu* header
-                    #if(r.search('(cpu\S+)', key)):
-                        ## Create the header with a 'Not calculated' value
-                        #samples[r.groups[0]]['percent'] = 'Not calculated'
-                        #if prevResults:
-                            ## If prevResults are present, calculate the CPU usage percentage
-                            #prevUser = float(prevResults[r.groups[0]]['user'])
-                            #prevNice = float(prevResults[r.groups[0]]['nice'])
-                            #prevSystem = float(prevResults[r.groups[0]]['system'])
-                            #prevIdle = float(prevResults[r.groups[0]]['idle'])
-                            #prevTotal = prevUser + prevNice + prevSystem + prevIdle
-
-                            #User = float(samples[r.groups[0]]['user'])
-                            #Nice = float(samples[r.groups[0]]['nice'])
-                            #System = float(samples[r.groups[0]]['system'])
-                            #Idle = float(samples[r.groups[0]]['idle'])
-                            #Total = User + Nice + System + Idle
-
-                            #try:
-                                #samples[r.groups[0]]['percent']=round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2)
-                            #except ZeroDivisionError:
-                                #pass
-
+                                    samples[ifName][field] = r.groups[i]
         except:
             LOG.debug(traceback.format_exc())
+
+        # If totals are to be calculated, find which values have their pairs
+        if self.options['calculate_totals']:
+            for ifName in samples:
+                for key in samples[ifName]:
+                    if r.search('(r|t)x_(\w+)', key):
+                        if r.groups[0] == 'r':
+                            pair='tx_' + r.groups[1]
+                        elif r.groups[0] == 't':
+                            pair='rx_' + r.groups[1]
+
+                        if pair in samples[ifName].keys():
+                            try:
+                                samples[ifName]['total_' + r.groups[1]] = str(int(samples[ifName][key]) + int(samples[ifName][pair]))
+                            except ValueError:
+                                # If you get a ValueError, most likely the collected
+                                # value is NA, so continue quietly
+                                samples[ifName]['total_' + r.groups[1]] = self.options['NA_value']
+
+        ## TODO: Add an option to calculate speed/second from previous collection
+                    ## Similar to the way
+                    ## cpu percentage (needs to be calculated) if self.calc_cpu_perc == True
+                    #if self.calc_cpu_perc:
+                        #for key in samples:
+                            ## Get only the values with a cpu* header
+                            #if(r.search('(cpu\S+)', key)):
+                                ## Create the header with a 'Not calculated' value
+                                #samples[r.groups[0]]['percent'] = 'Not calculated'
+                                #if prevResults:
+                                    ## If prevResults are present, calculate the CPU usage percentage
+                                    #prevUser = float(prevResults[r.groups[0]]['user'])
+                                    #prevNice = float(prevResults[r.groups[0]]['nice'])
+                                    #prevSystem = float(prevResults[r.groups[0]]['system'])
+                                    #prevIdle = float(prevResults[r.groups[0]]['idle'])
+                                    #prevTotal = prevUser + prevNice + prevSystem + prevIdle
+
+                                    #User = float(samples[r.groups[0]]['user'])
+                                    #Nice = float(samples[r.groups[0]]['nice'])
+                                    #System = float(samples[r.groups[0]]['system'])
+                                    #Idle = float(samples[r.groups[0]]['idle'])
+                                    #Total = User + Nice + System + Idle
+
+                                    #try:
+                                        #samples[r.groups[0]]['percent']=round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2)
+                                    #except ZeroDivisionError:
+                                        #pass
 
         return samples

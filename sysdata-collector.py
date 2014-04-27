@@ -418,7 +418,7 @@ def initDataCollection(main):
     except KeyboardInterrupt:
         print("\n")
         LOG.info("Collection stopped")
-        exit(globalvars.exitCode.SUCCESS)
+        exit(globalvars.exitCode.FAILURE)
     except:
         LOG.critical(traceback.format_exc())
         exit(globalvars.exitCode.FAILURE)
