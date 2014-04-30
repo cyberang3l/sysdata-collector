@@ -85,6 +85,10 @@ After cloning is finished, a new directory sysdata-collector will
 be created. Enter the directory and run the main script which is
 sysdata-collector.py
 
+To run in CentOS 6.4 I had to install argparse and ordereddict with
+the following command:
+    yum install python-argparse python-ordereddict
+
 
 Usage Examples
 ------------
