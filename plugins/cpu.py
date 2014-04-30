@@ -210,12 +210,12 @@ class cpu_stats(DataCollector):
 
                             if(self.runningKernelIsGLEthan('2.6.33', Greater=True, Equal=True)):
                                 # guest_nice (supported since Linux 2.6.33)
-                                PrevGuest = float(prevResults[r.groups[0]]['guest'])
-                                Guest = float(samples[r.groups[0]]['guest'])
-                            if(self.runningKernelIsGLEthan('2.6.24', Greater=True, Equal=True)):
-                                # guest (supported since Linux 2.6.24)
                                 PrevGuest_nice = float(prevResults[r.groups[0]]['guest_nice'])
                                 Guest_nice = float(samples[r.groups[0]]['guest_nice'])
+                            if(self.runningKernelIsGLEthan('2.6.24', Greater=True, Equal=True)):
+                                # guest (supported since Linux 2.6.24)
+                                PrevGuest = float(prevResults[r.groups[0]]['guest'])
+                                Guest = float(samples[r.groups[0]]['guest'])
                             if(self.runningKernelIsGLEthan('2.6.11', Greater=True, Equal=True)):
                                 # steal (supported since Linux 2.6.11)
                                 PrevSteal = float(prevResults[r.groups[0]]['steal'])
