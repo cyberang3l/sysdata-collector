@@ -168,24 +168,50 @@ class DataCollector(IPlugin):
             print_("################## Iteration 2 ##################")
             print_(self.collect(prevResults))
 
-    def runningKernelIsGEthan(self, kernel):
+    def runningKernelIsGLEthan(self, kernel, Greater=False, Less=False, Equal=False):
         """
-        Use this function to check if the running kernel is Greater or Equal to "kernel"
+        Use this function to check if the running kernel is Greater, Less and/or Equal to "kernel"
 
-        Returns True if it is Greater or Equal to "kernel"
-        Returns False otherwise
+        Greater: Set to True if you want to check if the running kernel is greater than 'kernel'
+        Less: Set to True if you want to check if the running kernel is less than 'kernel'
+        Equal: Set to True if you want to check if the running kernel is equal to 'kernel'
+
+        Potential combinations
+        G=True/False, L=True/False, Equal=True  | ==
+        G=True/False, L=True/False, Equal=False | is not
+        G=True, L=False, Equal=True             | >=
+        G=True, L=False, Equal=False            | >
+        G=False, L=True, Equal=True             | <=
+        G=False, L=True, Equal=False            | <
 
         Example usage in cpu plugin:
-        if(self.runningKernelIsGEthan('2.6.11')):
+        if(self.runningKernelIsGLEthan('2.6.11')):
             # steal (supported since Linux 2.6.11)
             #    Stolen time, which is the time spent in other operating
             #    systems when running in a virtualized environment
             samples[cpuName]['steal'] = r.groups[8]
         """
-        if(StrictVersion(self.running_kernel_version) >= StrictVersion(kernel)):
-            return True
-        else:
-            return False
+
+        if Greater == Less:
+            if Equal:
+                if(StrictVersion(self.running_kernel_version) == StrictVersion(kernel)):
+                    return True
+            else:
+                if(StrictVersion(self.running_kernel_version) is not StrictVersion(kernel)):
+                    return True
+        elif Greater and Equal:
+            if(StrictVersion(self.running_kernel_version) >= StrictVersion(kernel)):
+                return True
+        elif Greater:
+            if(StrictVersion(self.running_kernel_version) > StrictVersion(kernel)):
+                return True
+        elif Less and Equal:
+            if(StrictVersion(self.running_kernel_version) <= StrictVersion(kernel)):
+                return True
+        elif Less:
+            if(StrictVersion(self.running_kernel_version) < StrictVersion(kernel)):
+                return True
+        return False
 
     def include_exclude_fields(self, fields_to_be_included, fields_to_be_excluded, all_accepted_fields, strict=True):
         """

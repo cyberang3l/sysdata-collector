@@ -21,6 +21,7 @@ import re
 import yapsy
 import logging
 import time
+import traceback
 from datetime import datetime, timedelta
 from yapsy.PluginFileLocator import PluginFileLocator, PluginFileAnalyzerWithInfoFile
 from yapsy.PluginManager import PluginManager, IPluginLocator

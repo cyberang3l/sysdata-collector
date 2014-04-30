@@ -11,7 +11,7 @@ Module = cpu.py
 
 # Version: the current version of this plugin
 # Required
-Version = 0.5.3
+Version = 0.6.0
 
 
 ########################################################
@@ -80,7 +80,7 @@ include_cpu_cores = *
 # exclude everything!!
 # If you don't want to exclude any cpu, just comment
 # out or let this parameter to be empty
-exclude_cpu_cores =
+exclude_cpu_cores = cpu[0-9]*
 
 # fields_to_collect: A comma separated list of the fields
 # to be collected from /proc/stat

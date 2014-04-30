@@ -34,8 +34,8 @@ class cpu_stats(DataCollector):
     http://www.linuxhowtos.org/System/procstat.htm
     https://www.kernel.org/doc/Documentation/filesystems/proc.txt    #(Search for /proc/stat)
 
-    # Simple calculation of the cpu percentage
-    http://unix.stackexchange.com/questions/27076/how-can-i-receive-top-like-cpu-statistics-from-the-shell?answertab=active#tab-top
+    # Calculation of the cpu percentage
+    http://stackoverflow.com/questions/23367857/accurate-calculation-of-cpu-usage-in-linux/23376195#23376195
     """
 
     # Do not change the order of PROC_STAT_FIELDS!
@@ -52,6 +52,34 @@ class cpu_stats(DataCollector):
     # Store the fields to collect data from.
     # All of the available fields can be seen in PROC_STAT_FIELDS
     fields_to_collect_data_from = []
+
+    def __init__(self):
+        super(cpu_stats, self).__init__()
+
+        # If the kernel is older, some of the PROC_STAT_FIELDS needs
+        # to be removed (they do not exist in older kernels)
+        self.available_cpu_fields = self.PROC_STAT_FIELDS[0:10]
+        if(self.runningKernelIsGLEthan('2.6.33', Less=True)):
+            # guest_nice (supported since Linux 2.6.33)
+            if('guest_nice' in self.PROC_STAT_FIELDS):
+                fields_list = list(self.PROC_STAT_FIELDS)
+                fields_list.remove('guest_nice')
+                self.PROC_STAT_FIELDS = tuple(fields_list)
+                self.available_cpu_fields = self.PROC_STAT_FIELDS[0:9]
+        if(self.runningKernelIsGLEthan('2.6.24', Less=True)):
+            # guest (supported since Linux 2.6.24)
+            if('guest' in self.PROC_STAT_FIELDS):
+                fields_list = list(self.PROC_STAT_FIELDS)
+                fields_list.remove('guest')
+                self.PROC_STAT_FIELDS = tuple(fields_list)
+                self.available_cpu_fields = self.PROC_STAT_FIELDS[0:8]
+        if(self.runningKernelIsGLEthan('2.6.11', Less=True)):
+            # steal (supported since Linux 2.6.11)
+            if('steal' in self.PROC_STAT_FIELDS):
+                fields_list = list(self.PROC_STAT_FIELDS)
+                fields_list.remove('steal')
+                self.PROC_STAT_FIELDS = tuple(fields_list)
+                self.available_cpu_fields = self.PROC_STAT_FIELDS[0:7]
 
     #----------------------------------------------------------------------
     def readConfigVars(self):
@@ -107,16 +135,15 @@ class cpu_stats(DataCollector):
                                                                        self.options['fields_to_exclude'],
                                                                        self.PROC_STAT_FIELDS)
 
-        self.LOG.debug('/proc/stat fields to be used for data collection: ' + str(self.fields_to_collect_data_from))
-
         # If cpu percentage needs to be calculated,
         # at least 'user', 'nice', 'system' and 'idle' fields
         # need to be collected
         if self.options['calc_cpu_perc']:
-            needed_for_calc_cpu_perc = ['user', 'nice', 'system', 'idle']
-            for needed_field in needed_for_calc_cpu_perc:
+            for needed_field in self.available_cpu_fields:
                 if needed_field not in self.fields_to_collect_data_from:
                     self.fields_to_collect_data_from.append(needed_field)
+
+        self.LOG.debug('/proc/stat fields to be used for data collection: ' + str(self.fields_to_collect_data_from))
 
     #----------------------------------------------------------------------
     def collect(self, prevResults = {}):
@@ -130,10 +157,7 @@ class cpu_stats(DataCollector):
         for cpuName in sorted(self.cpu_cores_to_collect_data_from):
             if cpuName not in samples.keys():
                 samples[cpuName] = OrderedDict()
-                # The first 10 fields in self.PROC_STAT_FIELDS
-                # are cpu specific
-                for i in range(0, 9):
-                    field = self.PROC_STAT_FIELDS[i]
+                for field in self.available_cpu_fields:
                     if field in self.fields_to_collect_data_from:
                         samples[cpuName][field] = self.options['NA_value']
 
@@ -177,19 +201,40 @@ class cpu_stats(DataCollector):
                     if prevResults:
                         # If prevResults are present, calculate the CPU usage percentage
                         try:
-                            prevUser = float(prevResults[r.groups[0]]['user'])
-                            prevNice = float(prevResults[r.groups[0]]['nice'])
-                            prevSystem = float(prevResults[r.groups[0]]['system'])
-                            prevIdle = float(prevResults[r.groups[0]]['idle'])
-                            prevTotal = prevUser + prevNice + prevSystem + prevIdle
+                            PrevSteal = PrevGuest = PrevGuest_nice = 0
+                            Steal = Guest = Guest_nice = 0
 
-                            User = float(samples[r.groups[0]]['user'])
-                            Nice = float(samples[r.groups[0]]['nice'])
-                            System = float(samples[r.groups[0]]['system'])
-                            Idle = float(samples[r.groups[0]]['idle'])
-                            Total = User + Nice + System + Idle
+                            if(self.runningKernelIsGLEthan('2.6.33', Greater=True, Equal=True)):
+                                # guest_nice (supported since Linux 2.6.33)
+                                PrevGuest = float(prevResults[r.groups[0]]['guest'])
+                                Guest = float(samples[r.groups[0]]['guest'])
+                            if(self.runningKernelIsGLEthan('2.6.24', Greater=True, Equal=True)):
+                                # guest (supported since Linux 2.6.24)
+                                PrevGuest_nice = float(prevResults[r.groups[0]]['guest_nice'])
+                                Guest_nice = float(samples[r.groups[0]]['guest_nice'])
+                            if(self.runningKernelIsGLEthan('2.6.11', Greater=True, Equal=True)):
+                                # steal (supported since Linux 2.6.11)
+                                PrevSteal = float(prevResults[r.groups[0]]['steal'])
+                                Steal = float(samples[r.groups[0]]['steal'])
 
-                            samples[r.groups[0]]['percent'] = str(round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2))
+                            prevUser = float(prevResults[r.groups[0]]['user']) - PrevGuest
+                            prevNice = float(prevResults[r.groups[0]]['nice']) - PrevGuest_nice
+                            prevSystem = float(prevResults[r.groups[0]]['system']) + float(prevResults[r.groups[0]]['irq']) + float(prevResults[r.groups[0]]['softirq'])
+                            prevVirtual = PrevGuest + PrevGuest_nice
+                            prevIdle = float(prevResults[r.groups[0]]['idle']) + float(prevResults[r.groups[0]]['iowait'])
+                            prevTotal = prevUser + prevNice + prevSystem + prevVirtual + prevIdle + PrevSteal
+
+                            User = float(samples[r.groups[0]]['user']) - Guest
+                            Nice = float(samples[r.groups[0]]['nice']) - Guest_nice
+                            System = float(samples[r.groups[0]]['system']) + float(samples[r.groups[0]]['irq']) + float(samples[r.groups[0]]['softirq'])
+                            Virtual = Guest + Guest_nice
+                            Idle = float(samples[r.groups[0]]['idle']) + float(samples[r.groups[0]]['iowait'])
+                            Total = User + Nice + System + Virtual + Idle + Steal
+
+                            if Total - prevTotal > 0:
+                                samples[r.groups[0]]['percent'] = str(round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2))
+                            else:
+                                samples[r.groups[0]]['percent'] = 0
                         except ZeroDivisionError:
                             # If the calculation returns ZeroDivisionError
                             # continue quietly
@@ -198,7 +243,5 @@ class cpu_stats(DataCollector):
                             # If the previous value is not available, a ValueError
                             # will be raised when the numbers are parsed
                             pass
-
-
 
         return samples
