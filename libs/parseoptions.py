@@ -62,9 +62,12 @@ def _command_Line_Options():
     #### Add user defined options here #####
     ########################################
 
-    parser = argparse.ArgumentParser(version=globalvars.VERSION,
-                                     description=globalvars.PROGRAM_NAME + " version " + globalvars.VERSION)
+    parser = argparse.ArgumentParser(description=globalvars.PROGRAM_NAME + " version " + globalvars.VERSION)
 
+    parser.add_argument("-v", "--version",
+                        action="version", default=argparse.SUPPRESS,
+                        version=globalvars.VERSION,
+                        help="show program's version number and exit")
     parser.add_argument("-a", "--append-file",
                         action="store_true",
                         default=False,
@@ -117,7 +120,6 @@ def _command_Line_Options():
                         dest="test_plugin_filename",
                         metavar="PLUGIN.py",
                         help="Use this option for debugging newly created plugins")
-
 
     ########################################
     #### End user defined options here #####

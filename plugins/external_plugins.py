@@ -16,12 +16,16 @@
 import traceback
 from libs.helperfuncs import *
 from libs.collector import DataCollector
-from collections import OrderedDict
 import os
 import glob
 import threading
 import thread
 from libs.globalvars import active_plugins_dir
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 
 ########################################################################
 class external_plugins(DataCollector):

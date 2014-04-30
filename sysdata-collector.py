@@ -25,7 +25,6 @@ import traceback
 from datetime import datetime, timedelta
 from yapsy.PluginFileLocator import PluginFileLocator, PluginFileAnalyzerWithInfoFile
 from yapsy.PluginManager import PluginManager, IPluginLocator
-from collections import OrderedDict
 from libs import globalvars
 from libs import parseoptions
 from libs.helperfuncs import *
@@ -33,6 +32,11 @@ from libs.collector import DataCollector
 from threading import Thread
 from ConfigParser import SafeConfigParser
 from distutils.version import StrictVersion
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 
 # Anything printed with LOG, it will be logged in a log file and it may be printed
 # (depending on the log level chosen) to the console as well.

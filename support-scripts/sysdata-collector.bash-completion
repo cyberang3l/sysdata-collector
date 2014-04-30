@@ -59,7 +59,6 @@ _sysdata_collector()
     # cur: the current keyword to be completed
     # prev: the previous keyword already existing
     local cur prev
-    _init_completion || return
 
     # Initially the COMPREPLY holds nothing
     COMPREPLY=()

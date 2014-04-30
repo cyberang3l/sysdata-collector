@@ -126,7 +126,11 @@ class DataCollector(IPlugin):
         --------------------------------------------------------------
         Sample code:
 
-            from collections import OrderedDict
+            try:
+                from collections import OrderedDict
+            except ImportError:
+                # python 2.6 or earlier, use backport
+                from ordereddict import OrderedDict
 
             results = OrderedDict()
             results['1st_sample'] = 0.3

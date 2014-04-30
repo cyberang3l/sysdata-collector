@@ -16,8 +16,12 @@
 import traceback
 from libs.helperfuncs import *
 from libs.collector import DataCollector
-from collections import OrderedDict
 from platform import release
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 
 ########################################################################
 class kernel_version(DataCollector):

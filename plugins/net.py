@@ -18,8 +18,12 @@ from libs.collector import DataCollector
 import sys
 import time
 import traceback
-from collections import OrderedDict
 import fnmatch
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 
 ########################################################################
 class net_stats(DataCollector):

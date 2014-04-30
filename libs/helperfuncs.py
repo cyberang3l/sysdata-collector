@@ -16,11 +16,15 @@
 import re
 import sys
 import traceback
-from collections import OrderedDict
 import logging
 import platform
 import subprocess
 import datetime
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 
 __all__ = [
     'quick_regexp', 'print_', 'get_dict_keys_by_value',
@@ -165,12 +169,12 @@ def print_(value_to_be_printed, print_indent=0, spaces_per_indent=4, endl="\n"):
     if(isinstance(value_to_be_printed, dict)):
         for key, value in value_to_be_printed.iteritems():
             if(isinstance(value, dict)):
-                print_('{}{!r}:'.format(print_indent * spaces_per_indent * ' ', key))
+                print_('{0}{1!r}:'.format(print_indent * spaces_per_indent * ' ', key))
                 print_(value, print_indent + 1)
             else:
-                print_('{}{!r}: {}'.format(print_indent * spaces_per_indent * ' ', key, value))
+                print_('{0}{1!r}: {2}'.format(print_indent * spaces_per_indent * ' ', key, value))
     else:
-        string = ('{}{}{}'.format(print_indent * spaces_per_indent * ' ', value_to_be_printed, endl))
+        string = ('{0}{1}{2}'.format(print_indent * spaces_per_indent * ' ', value_to_be_printed, endl))
         sys.stdout.write(string)
 
 #----------------------------------------------------------------------
@@ -181,7 +185,7 @@ def get_dict_keys_by_value(dictionary, value):
     """
     if(isinstance(dictionary, dict)):
         #return dictionary.keys()[dictionary.values().index(value)]
-        return {k:v for k, v in dictionary.items() if v == value}
+        return OrderedDict((k, v) for (k, v) in dictionary.items() if v == value)
     else:
         raise KeyError
 
@@ -195,7 +199,7 @@ def flatten_nested_dicts(d, parent_key=None):
     if(isinstance(d, dict)):
         items = []
         for k, v in d.items():
-            new_key = "{}_{}".format(parent_key, k) if parent_key else str(k)
+            new_key = "{0}_{1}".format(parent_key, k) if parent_key else str(k)
             if isinstance(v, dict):
                 items.extend(flatten_nested_dicts(v, new_key).items())
             else:
