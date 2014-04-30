@@ -4,4 +4,4 @@
 *.wpu
 *.log
 *.dat
-*.csv
+*.csv*

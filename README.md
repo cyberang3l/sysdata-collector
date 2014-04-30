@@ -87,8 +87,9 @@ sysdata-collector.py
 
 To run in CentOS 6.4 I had to install argparse and ordereddict with
 the following command:
+```
     yum install python-argparse python-ordereddict
-
+```
 
 Usage Examples
 ------------
