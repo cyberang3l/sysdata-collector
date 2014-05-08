@@ -138,7 +138,7 @@ class Main(object):
         LOG.info("Getting available plugins in the system...")
         for plugin in self.plugin_manager.getPluginsOfCategory("DataCollectors"):
             if(isinstance(plugin, yapsy.PluginInfo.PluginInfo)):
-                plugin_key_name = plugin.name + '_' + str(plugin.version)
+                plugin_key_name = (plugin.name + '_' + str(plugin.version)).replace(' ', '_')
                 if(plugin_key_name not in self.DataCollectors.keys()):
                     # Store the plugin in self.DataCollectors
                     self.DataCollectors[plugin_key_name] = {}
@@ -179,6 +179,7 @@ class Main(object):
         for key, plugin in self.DataCollectors.items():
             print_(4 * " " + str(plugin['order']) + ": '" + plugin['info'].name + " v" + str(plugin['info'].version) + "' located at '" + plugin['info'].path + "'")
             print_(8 * " " + " " * len(str(plugin['order'])) + "Module name: '" + os.path.basename(plugin['info'].path) + "'")
+            print_(8 * " " + " " * len(str(plugin['order'])) + "Identifier name: '" + key + "'")
 
 
     #----------------------------------------------------------------------
@@ -309,11 +310,11 @@ def main():
 
     # if --plugin-test plugin.py option is passed, print the returned results and headers of the plugin
     if(globalvars.test_plugin):
-        print_("Testing plugin '" + globalvars.test_plugin + "'")
         for name, datacollector in main.DataCollectors.items():
             if(isinstance(datacollector['info'], yapsy.PluginInfo.PluginInfo)):
-                if(datacollector['info'].path.endswith(globalvars.test_plugin) or datacollector['info'].path.endswith(globalvars.test_plugin + ".py")):
+                if(name == globalvars.test_plugin):
                     if(isinstance(datacollector['plugin'], DataCollector)):
+                        print_("Testing plugin '" + datacollector['info'].name + " v" + str(datacollector['info'].version) + "' which is located in '" + datacollector['info'].path + "'" )
                         testPlugin(datacollector['plugin'])
                         exit(globalvars.exitCode.SUCCESS)
         # If this point of execution is reached, it means that the plugin was not found.
@@ -510,7 +511,3 @@ def collectData(main, Sample):
 #----------------------------------------------------------------------
 if __name__ == '__main__':
     main()
-
-# TODO: --test-plugin, should be able to differantiate different versions of the same plugins.
-#       Currently testing by module name, but if the plugin is the same, even if the version is different
-#       the name will still be the same.

@@ -13,7 +13,7 @@ _sysdata_collector_get_available_plugins()
 {
     # The the plugins available to the system by issuing the command
     # sysdata-collector.py --list-available-plugins
-    for plugin in $(sysdata-collector.py --list-available-plugins 2>/dev/null | grep 'Module name' | awk '{print $3}')
+    for plugin in $(sysdata-collector.py --list-available-plugins 2>/dev/null | grep 'Identifier name' | awk '{print $3}')
     do
         # Strip the quotes from the returned results
         echo ${plugin:1:-1}
@@ -40,7 +40,7 @@ _sysdata_collector_opt_subcompletions()
         FILE|LOG_FILE|CONF_FILE)
             _filedir
             ;;
-        PLUGIN.py)
+        PLUGIN_IDENTIFIER_NAME)
             COMPREPLY=( $(compgen -W "$(_sysdata_collector_get_available_plugins)" -- $cur ) )
             ;;
         LOG_LEVEL)

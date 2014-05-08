@@ -117,9 +117,9 @@ def _command_Line_Options():
                         help="Enabling this flag, will disable saving samples in a file. They will only be printed instead.")
     parser.add_argument("-k", "--test-plugin",
                         action="store",
-                        dest="test_plugin_filename",
-                        metavar="PLUGIN.py",
-                        help="Use this option for debugging newly created plugins")
+                        dest="test_plugin_id_name",
+                        metavar="PLUGIN_IDENTIFIER_NAME",
+                        help="Use this option for debugging newly created plugins. Get the plugin identified name by using the '--list-available-plugins' option")
 
     ########################################
     #### End user defined options here #####
@@ -199,8 +199,8 @@ def _validate_command_Line_Options(opts):
         print("ERROR: You cannot combine '--only-print-samples' and '--output-file' switches. Please choose only one of them.")
         exit(globalvars.exitCode.INCORRECT_USAGE)
 
-    if(opts.test_plugin_filename):
-        globalvars.test_plugin = opts.test_plugin_filename
+    if(opts.test_plugin_id_name):
+        globalvars.test_plugin = opts.test_plugin_id_name
 
     if(opts.output_file):
         globalvars.output_file = replaceVariablesInConfStrings(opts.output_file)
