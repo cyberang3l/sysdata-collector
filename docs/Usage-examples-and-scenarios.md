@@ -15,11 +15,11 @@
 
 A list of the available command line options
 ```
-$ ./sysdata-collector.py -h
+$ sysdata-collector.py --help
 usage: sysdata-collector.py [-h] [-v] [-a] [-b FILE] [-c CHAR] [-d] [-e]
-                            [-f DIR] [-g PLUGIN.py] [-i FLOAT] [-j]
-                            [-C conf_file] [-D] [-Q] [-L log_level]
-                            [-F log_file]
+                            [-f DIR_ACTIVE] [-g DIR_PLUGINS] [-i FLOAT] [-j]
+                            [-k PLUGIN_IDENTIFIER_NAME] [-C CONF_FILE] [-D]
+                            [-Q] [-L LOG_LEVEL] [-F LOG_FILE]
 
 sysdata-collector version 0.0.1
 
@@ -38,12 +38,13 @@ optional arguments:
   -e, --list-active-plugins
                         Prints a list of the active plugins located under the
                         chosen active-directory and exit
-  -f DIR, --active-dir DIR
+  -f DIR_ACTIVE, --active-plugins-dir DIR_ACTIVE
                         Define the active-directory to load plugins from for
                         this experiment.
-  -g PLUGIN.py, --plugin-test PLUGIN.py
-                        Use this option for debugging newly created plugins
-  -i FLOAT, --interval-between-samples FLOAT
+  -g DIR_PLUGINS, --custom-plugins-dir DIR_PLUGINS
+                        Define a directory containing more plugins to be
+                        loaded.
+  -i FLOAT, --interval-between-sampling FLOAT
                         A FLOAT number which is the sleeping time given in
                         seconds between sampling. If the value is 0 or
                         negative, instant sampling will be initiated after
@@ -51,8 +52,12 @@ optional arguments:
   -j, --only-print-samples
                         Enabling this flag, will disable saving samples in a
                         file. They will only be printed instead.
-  -C conf_file, --conffile conf_file
-                        conf_file where the configuration will be read from
+  -k PLUGIN_IDENTIFIER_NAME, --test-plugin PLUGIN_IDENTIFIER_NAME
+                        Use this option for debugging newly created plugins.
+                        Get the plugin identified name by using the '--list-
+                        available-plugins' option
+  -C CONF_FILE, --conf-file CONF_FILE
+                        CONF_FILE where the configuration will be read from
                         (Default: will search for file 'sysdata-
                         collector.conf' in the known predefined locations
   -D, --daemon          run in daemon mode
@@ -63,11 +68,11 @@ Logging Options:
   -Q, --quiet           Disable logging in the console but still keep logs in
                         a file. This options is forced when run in daemon
                         mode.
-  -L log_level, --loglevel log_level
-                        log_level might be set to: CRITICAL, ERROR, WARNING,
+  -L LOG_LEVEL, --loglevel LOG_LEVEL
+                        LOG_LEVEL might be set to: CRITICAL, ERROR, WARNING,
                         INFO, DEBUG. (Default: INFO)
-  -F log_file, --logfile log_file
-                        log_file where the logs will be stored. If the file
+  -F LOG_FILE, --logfile LOG_FILE
+                        LOG_FILE where the logs will be stored. If the file
                         exists, text will be appended, otherwise the file will
                         be created (Default: ./sysdata-collector.log)
 ```
@@ -94,19 +99,26 @@ Keep in mind, that the plugins located in the `plugins`
 folder are not active by default.
 
 ```
-$ ./sysdata-collector.py -d
+$ sysdata-collector.py --list-available-plugins 
 Getting available plugins in the system...
-4 plugins available.
+5 plugins available.
 #######################################
 List of available plugins:
-    1: 'Kernel Version v1.0' located at '/home/cyber/Dropbox/Various/Scripts/Python/sysdata-collector/plugins/kernel_version.py'
-         Module name: 'kernel_version.py'
-    2: 'CPU Stats v0.2' located at '/home/cyber/Dropbox/Various/Scripts/Python/sysdata-collector/plugins/cpu.py'
+    1: 'CPU Stats v0.6.1' located at '/home/cyber/.sysdata-collector/plugins/cpu.py'
          Module name: 'cpu.py'
-    3: 'Net Stats v0.1' located at '/home/cyber/Dropbox/Various/Scripts/Python/sysdata-collector/plugins/net.py'
+         Identifier name: 'CPU_Stats_0.6.1'
+    2: 'External Plugins v0.1' located at '/home/cyber/.sysdata-collector/plugins/external_plugins.py'
+         Module name: 'external_plugins.py'
+         Identifier name: 'External_Plugins_0.1'
+    3: 'Kernel Version v1.0' located at '/home/cyber/.sysdata-collector/plugins/kernel_version.py'
+         Module name: 'kernel_version.py'
+         Identifier name: 'Kernel_Version_1.0'
+    4: 'Net Stats v0.4.1' located at '/home/cyber/.sysdata-collector/plugins/net.py'
          Module name: 'net.py'
-    4: 'New plugin template v0.0.1' located at '/home/cyber/Dropbox/Various/Scripts/Python/sysdata-collector/plugins/new_plugin_template.py'
+         Identifier name: 'Net_Stats_0.4.1'
+    5: 'New plugin template v0.0.1' located at '/home/cyber/.sysdata-collector/plugins/new_plugin_template.py'
          Module name: 'new_plugin_template.py'
+         Identifier name: 'New_plugin_template_0.0.1'
 ```
 
 -------
@@ -118,17 +130,20 @@ To activate a plugin which is available in the `plugins` folder,
 generate a symbolic link in the active-plugins folder (`ln -s plugins/`)
 
 ```
-$ ./sysdata-collector.py -e
+$ sysdata-collector.py --list-active-plugins 
 Getting available plugins in the system...
-4 plugins available.
+6 plugins available.
 Activating symlinked plugins located in 'active-plugins'
-2 plugin(s) activated
+3 plugin(s) activated
 #######################################
 List of active plugins in directory 'active-plugins'
-    1: 'Net Stats v0.1' located at '/home/cyber/Dropbox/Various/Scripts/Python/sysdata-collector/plugins/net.py'
+    1: 'Net Stats v0.4.1' located at '/home/cyber/Programming/Python/sysdata-collector/plugins/net.py'
          Module name: 'net.py'
-         Symlink loading this instance: '/home/cyber/Dropbox/Various/Scripts/Python/sysdata-collector/active-plugins/net.py'
-    2: 'CPU Stats v0.2' located at '/home/cyber/Dropbox/Various/Scripts/Python/sysdata-collector/plugins/cpu.py'
+         Symlink loading this instance: '/home/cyber/Programming/Python/sysdata-collector/active-plugins/net.py'
+    2: 'External Plugins v0.1' located at '/home/cyber/Programming/Python/sysdata-collector/plugins/external_plugins.py'
+         Module name: 'external_plugins.py'
+         Symlink loading this instance: '/home/cyber/Programming/Python/sysdata-collector/active-plugins/external_plugins.py'
+    3: 'CPU Stats v0.6' located at '/home/cyber/Programming/Python/sysdata-collector/plugins/cpu.py'
          Module name: 'cpu.py'
-         Symlink loading this instance: '/home/cyber/Dropbox/Various/Scripts/Python/sysdata-collector/active-plugins/cpu.py'
+         Symlink loading this instance: '/home/cyber/Programming/Python/sysdata-collector/active-plugins/cpu.py'
 ```

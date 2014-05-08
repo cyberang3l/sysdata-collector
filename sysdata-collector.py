@@ -511,3 +511,6 @@ def collectData(main, Sample):
 #----------------------------------------------------------------------
 if __name__ == '__main__':
     main()
+
+# TODO: The NA_value should be common for all of the plugins and the configuration should be transfered in
+#       sysdata-collector.conf instead. Also a command line option should be added.
