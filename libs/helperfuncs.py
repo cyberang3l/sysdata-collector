@@ -44,37 +44,37 @@ class executeCommand(object):
     """
 
     def __init__(self, args=None, isUtc=True):
-        self.__stdout = None
-        self.__stderr = None
-        self.__returncode = None
-        self.__timeStartedExecution = None
-        self.__timeFinishedExecution = None
-        self.__args = args
+        self._stdout = None
+        self._stderr = None
+        self._returncode = None
+        self._timeStartedExecution = None
+        self._timeFinishedExecution = None
+        self._args = args
         self.isUtc = isUtc
-        if(self.__args != None):
+        if(self._args != None):
             self.execute()
 
     def execute(self, args=None):
         if(args != None):
-            self.__args = args
+            self._args = args
 
-        if(self.__args != None):
+        if(self._args != None):
             if(self.isUtc):
-                self.__timeStartedExecution = datetime.datetime.utcnow()
+                self._timeStartedExecution = datetime.datetime.utcnow()
             else:
-                self.__timeStartedExecution = datetime.datetime.now()
-            p = subprocess.Popen(self.__args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                self._timeStartedExecution = datetime.datetime.now()
+            p = subprocess.Popen(self._args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if(self.isUtc):
-                self.__timeFinishedExecution = datetime.datetime.utcnow()
+                self._timeFinishedExecution = datetime.datetime.utcnow()
             else:
-                self.__timeFinishedExecution = datetime.datetime.now()
-            self.__stdout, self.__stderr = p.communicate()
-            self.__returncode = p.returncode
+                self._timeFinishedExecution = datetime.datetime.now()
+            self._stdout, self._stderr = p.communicate()
+            self._returncode = p.returncode
             return 1
         else:
-            self.__stdout = None
-            self.__stderr = None
-            self.__returncode = None
+            self._stdout = None
+            self._stderr = None
+            self._returncode = None
             return 0
 
     def getStdout(self, getList=True):
@@ -86,9 +86,9 @@ class executeCommand(object):
         """
 
         if getList:
-            return self.__stdout.split('\n')
+            return self._stdout.split('\n')
 
-        return self.__stdout
+        return self._stdout
 
     def getStderr(self, getList=True):
         """
@@ -99,35 +99,35 @@ class executeCommand(object):
         """
 
         if getList:
-            return self.__stderr.split('\n')
+            return self._stderr.split('\n')
 
-        return self.__stderr
+        return self._stderr
 
     def getReturnCode(self):
         """
         Get the exit/return status of the command
         """
-        return self.__returncode
+        return self._returncode
 
     def getTimeStartedExecution(self, inMicroseconds=False):
         """
         Get the time when the execution started
         """
-        if(isinstance(self.__timeStartedExecution, datetime.datetime)):
+        if(isinstance(self._timeStartedExecution, datetime.datetime)):
             if(inMicroseconds):
-                return int(str(calendar.timegm(self.__timeStartedExecution.timetuple())) + str(self.__timeStartedExecution.strftime("%f")))
-                #return self.__timeStartedExecution.strftime("%s%f")
-        return self.__timeStartedExecution
+                return int(str(calendar.timegm(self._timeStartedExecution.timetuple())) + str(self._timeStartedExecution.strftime("%f")))
+                #return self._timeStartedExecution.strftime("%s%f")
+        return self._timeStartedExecution
 
     def getTimeFinishedExecution(self, inMicroseconds=False):
         """
         Get the time when the execution finished
         """
-        if(isinstance(self.__timeFinishedExecution, datetime.datetime)):
+        if(isinstance(self._timeFinishedExecution, datetime.datetime)):
             if(inMicroseconds):
-                return int(str(calendar.timegm(self.__timeFinishedExecution.timetuple())) + str(self.__timeFinishedExecution.strftime("%f")))
-                #return self.__timeStartedExecution.strftime("%s%f")
-        return self.__timeFinishedExecution
+                return int(str(calendar.timegm(self._timeFinishedExecution.timetuple())) + str(self._timeFinishedExecution.strftime("%f")))
+                #return self._timeStartedExecution.strftime("%s%f")
+        return self._timeFinishedExecution
 
 #----------------------------------------------------------------------
 class quick_regexp(object):
@@ -142,13 +142,21 @@ class quick_regexp(object):
     """
     def __init__(self):
         self.groups = None
+        self.matched = False
 
     def search(self, pattern, string, flags=0):
-        try:
-            self.groups = re.search(pattern, string, flags).groups()
-        except:
+        match = re.search(pattern, string, flags)
+        if match:
+            self.matched = True
+            if(match.groups()):
+                self.groups = re.search(pattern, string, flags).groups()
+            else:
+                self.groups = True
+        else:
+            self.matched = False
             self.groups = None
-        return self.groups
+
+        return self.matched
 
 #----------------------------------------------------------------------
 def print_(value_to_be_printed, print_indent=0, spaces_per_indent=4, endl="\n"):
