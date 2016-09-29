@@ -33,11 +33,11 @@ Author = Vangelis Tasoulas
 # Website: the website where the plugin can be found.
 # this website will be used to check for latest versions of this plugin
 # Optional
-Website = http://simula.no/people/vangelis
+Website = https://github.com/cyberang3l/sysdata-collector/tree/master/plugins
 
 # Copyright: copyright for the plugin
 # Optional
-Copyright = 2014
+Copyright = 2016
 
 # Description: a short description of this plugin
 # Optional
@@ -57,7 +57,7 @@ Description = Read CPU statistics from /proc/stat
 # in the data collection, but 'Not Available' values will
 # be returned.
 # To include the cpu (which is the average of all cpu cores)
-# use 'cpus_avg_all'
+# use 'cpu_all'
 #
 # Unix shell-style wildcards are accepted for inclusion
 # of the cpu cores being present when the  data collection
