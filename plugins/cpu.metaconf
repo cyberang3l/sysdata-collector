@@ -11,7 +11,7 @@ Module = cpu.py
 
 # Version: the current version of this plugin
 # Required
-Version = 0.7.0
+Version = 0.7.1
 
 
 ########################################################
@@ -123,7 +123,7 @@ fields_to_collect = *
 # exclude all of the field to be collected!!
 # If you don't want to exclude any field, just comment
 # out or let this parameter to be empty
-fields_to_exclude =
+fields_to_exclude = procs_running, procs_blocked
 
 # NA_value: value to use when the real value cannot be collected.
 # For example, at the very first iteration, if calc_cpu_perc
