@@ -119,7 +119,7 @@ class cpu_stats(DataCollector):
                             cpuName = 'cpu' + r.groups[0]
                         else:
                             # The very first "cpu" line aggregates the numbers in all of the other "cpuN" lines.
-                            cpuName = 'cpus_avg_all'
+                            cpuName = 'cpu_all'
                         # Append the available cpu core in available_cpu_cores list
                         available_cpu_cores.append(cpuName)
 
@@ -175,8 +175,8 @@ class cpu_stats(DataCollector):
                             cpuName = 'cpu' + r.groups[0]
                         else:
                             # The very first "cpu" line aggregates the numbers in all of the other "cpuN" lines.
-                            # That's why we call it 'cpus_avg_all'
-                            cpuName = 'cpus_avg_all'
+                            # That's why we call it 'cpu_all'
+                            cpuName = 'cpu_all'
 
                         # If the cpuName is listed in self.cpu_cores_to_collect_data_from
                         # then we need to collect data for this cpu core
@@ -201,7 +201,22 @@ class cpu_stats(DataCollector):
                 # Get only the values with a cpu* header
                 if(r.search('(cpu\S+)', key)):
                     # Create the header with a 'Not calculated' value
-                    samples[r.groups[0]]['percent'] = self.options['NA_value']
+                    samples[r.groups[0]]['pct_total_used'] = self.options['NA_value']
+                    samples[r.groups[0]]['pct_total_idle'] = self.options['NA_value']
+                    samples[r.groups[0]]['pct_user'] = self.options['NA_value']
+                    samples[r.groups[0]]['pct_system'] = self.options['NA_value']
+                    samples[r.groups[0]]['pct_nice'] = self.options['NA_value']
+                    samples[r.groups[0]]['pct_idle'] = self.options['NA_value']
+                    samples[r.groups[0]]['pct_iowait'] = self.options['NA_value']
+                    samples[r.groups[0]]['pct_irq'] = self.options['NA_value']
+                    samples[r.groups[0]]['pct_softirq'] = self.options['NA_value']
+                    if(self.runningKernelIsGLEthan('2.6.33', Greater=True, Equal=True)):
+                        samples[r.groups[0]]['pct_guest_nice'] = self.options['NA_value']
+                    if(self.runningKernelIsGLEthan('2.6.24', Greater=True, Equal=True)):
+                        samples[r.groups[0]]['pct_guest'] = self.options['NA_value']
+                    if(self.runningKernelIsGLEthan('2.6.11', Greater=True, Equal=True)):
+                        samples[r.groups[0]]['pct_steal'] = self.options['NA_value']
+
                     if prevResults:
                         # If prevResults are present, calculate the CPU usage percentage
                         try:
@@ -223,22 +238,64 @@ class cpu_stats(DataCollector):
 
                             prevUser = float(prevResults[r.groups[0]]['user']) - PrevGuest
                             prevNice = float(prevResults[r.groups[0]]['nice']) - PrevGuest_nice
-                            prevSystem = float(prevResults[r.groups[0]]['system']) + float(prevResults[r.groups[0]]['irq']) + float(prevResults[r.groups[0]]['softirq'])
+                            prevSystem = float(prevResults[r.groups[0]]['system'])
+                            prevIrq = float(prevResults[r.groups[0]]['irq'])
+                            prevSoftIrq = float(prevResults[r.groups[0]]['softirq'])
+                            prevIdle = float(prevResults[r.groups[0]]['idle'])
+                            prevIowait = float(prevResults[r.groups[0]]['iowait'])
+
+                            prevTotalIdle = prevIdle + prevIowait
                             prevVirtual = PrevGuest + PrevGuest_nice
-                            prevIdle = float(prevResults[r.groups[0]]['idle']) + float(prevResults[r.groups[0]]['iowait'])
-                            prevTotal = prevUser + prevNice + prevSystem + prevVirtual + prevIdle + PrevSteal
+                            prevTotalSystem = prevSystem + prevIrq + prevSoftIrq
+                            prevTotal = prevUser + prevNice + prevTotalSystem + prevVirtual + prevTotalIdle + PrevSteal
+
 
                             User = float(samples[r.groups[0]]['user']) - Guest
                             Nice = float(samples[r.groups[0]]['nice']) - Guest_nice
-                            System = float(samples[r.groups[0]]['system']) + float(samples[r.groups[0]]['irq']) + float(samples[r.groups[0]]['softirq'])
+                            System = float(samples[r.groups[0]]['system'])
+                            Irq = float(samples[r.groups[0]]['irq'])
+                            SoftIrq = float(samples[r.groups[0]]['softirq'])
+                            Idle = float(samples[r.groups[0]]['idle'])
+                            Iowait = float(samples[r.groups[0]]['iowait'])
+
+                            TotalIdle = Idle + Iowait
                             Virtual = Guest + Guest_nice
-                            Idle = float(samples[r.groups[0]]['idle']) + float(samples[r.groups[0]]['iowait'])
-                            Total = User + Nice + System + Virtual + Idle + Steal
+                            TotalSystem = System + Irq + SoftIrq
+                            Total = User + Nice + TotalSystem + Virtual + TotalIdle + Steal
 
                             if Total - prevTotal > 0:
-                                samples[r.groups[0]]['percent'] = str(round(100 * (( Total - prevTotal ) - ( Idle - prevIdle )) / ( Total - prevTotal ), 2))
+                                samples[r.groups[0]]['pct_total_used'] = str(round(100 * (( Total - prevTotal ) - ( TotalIdle - prevTotalIdle )) / ( Total - prevTotal ), 2))
+                                samples[r.groups[0]]['pct_total_idle'] = str(round(100 * ( Idle - prevIdle ) / ( Total - prevTotal ), 2))
+                                samples[r.groups[0]]['pct_user'] = str(round((100 * ( User - prevUser ) / ( Total - prevTotal )), 2))
+                                samples[r.groups[0]]['pct_system'] = str(round((100 * ( System - prevSystem ) / ( Total - prevTotal )), 2))
+                                samples[r.groups[0]]['pct_nice'] = str(round((100 * ( Nice - prevNice ) / ( Total - prevTotal )), 2))
+                                samples[r.groups[0]]['pct_idle'] = str(round((100 * ( Idle - prevIdle ) / ( Total - prevTotal )), 2))
+                                samples[r.groups[0]]['pct_iowait'] = str(round((100 * ( Iowait - prevIowait ) / ( Total - prevTotal )), 2))
+                                samples[r.groups[0]]['pct_irq'] = str(round((100 * ( Irq - prevIrq ) / ( Total - prevTotal )), 2))
+                                samples[r.groups[0]]['pct_softirq'] = str(round((100 * ( SoftIrq - prevSoftIrq ) / ( Total - prevTotal )), 2))
+                                if(self.runningKernelIsGLEthan('2.6.33', Greater=True, Equal=True)):
+                                    samples[r.groups[0]]['pct_guest_nice'] = str(round((100 * ( Guest_nice - PrevGuest_nice ) / ( Total - prevTotal )), 2))
+                                if(self.runningKernelIsGLEthan('2.6.24', Greater=True, Equal=True)):
+                                    samples[r.groups[0]]['pct_guest'] = str(round((100 * ( Guest - PrevGuest ) / ( Total - prevTotal )), 2))
+                                if(self.runningKernelIsGLEthan('2.6.11', Greater=True, Equal=True)):
+                                    samples[r.groups[0]]['pct_steal'] = str(round((100 * ( Steal - PrevSteal ) / ( Total - prevTotal )), 2))
                             else:
-                                samples[r.groups[0]]['percent'] = 0
+                                samples[r.groups[0]]['pct_total_used'] = str(0)
+                                samples[r.groups[0]]['pct_total_idle'] = str(1)
+                                samples[r.groups[0]]['pct_user'] = str(0)
+                                samples[r.groups[0]]['pct_system'] = str(0)
+                                samples[r.groups[0]]['pct_nice'] = str(0)
+                                samples[r.groups[0]]['pct_idle'] = str(1)
+                                samples[r.groups[0]]['pct_iowait'] = str(0)
+                                samples[r.groups[0]]['pct_irq'] = str(0)
+                                samples[r.groups[0]]['pct_softirq'] = str(0)
+                                if(self.runningKernelIsGLEthan('2.6.33', Greater=True, Equal=True)):
+                                    samples[r.groups[0]]['pct_guest_nice'] = str(0)
+                                if(self.runningKernelIsGLEthan('2.6.24', Greater=True, Equal=True)):
+                                    samples[r.groups[0]]['pct_guest'] = str(0)
+                                if(self.runningKernelIsGLEthan('2.6.11', Greater=True, Equal=True)):
+                                    samples[r.groups[0]]['pct_steal'] = str(0)
+
                         except ZeroDivisionError:
                             # If the calculation returns ZeroDivisionError
                             # continue quietly
